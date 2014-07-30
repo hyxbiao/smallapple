@@ -163,11 +163,39 @@ UIAutoMonkey.prototype.RELEASE_THE_MONKEY = function() {
 	// Called at the bottom of this script to, you know...
 	//
 	// RELEASE THE MONKEY!
+	
+	// add by hyxbiao
+	this.dealWelcome();
 
 	for(var i = 0; i < this.config.numberOfEvents; i++) {
 		this.triggerRandomEvent();
 		if (this.config.screenshotInterval) this.takeScreenShotIfItIsTime();
 		this.delay();
+	}
+};
+
+UIAutoMonkey.prototype.dealWelcome = function() {
+	var app = this.target().frontMostApp();
+	var window = app.mainWindow();
+	var rect = window.rect();
+
+	//var elements = window.elements();
+	var scrollview = window.scrollViews()[0];
+	if (scrollview instanceof UIAScrollView) {
+		var srect = scrollview.rect();
+		if (srect.origin.x == rect.origin.x &&
+			srect.origin.y == rect.origin.y &&
+			srect.size.width == rect.size.width &&
+			srect.size.height == rect.size.height) {
+			var len = scrollview.elements().length;
+			for (var i=0; i<len; i++) {
+				this.target().flickFromTo(
+					{x: rect.size.width/2+100, y: rect.size.height/2},
+					{x: rect.size.width/2-100, y: rect.size.height/2}
+				);
+				this.delay(0.9);
+			}
+		}
 	}
 };
 

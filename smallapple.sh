@@ -82,6 +82,7 @@ TTY_MODE_COLOR[8]="1;33"
 function MainUsage()
 {
 	echo "usage: $MODULE_NAME [tool]"
+	echo "       install        : install app"
 	echo "       appinfo        : get app infomation"
 	echo "       resign         : resign app"
 	echo "       monkey         : run monkey testing"
@@ -142,6 +143,10 @@ function Resign()
 
 function Install()
 {
+	if [ $# -ne 1 ]; then
+		echo "usage: $MODULE_NAME install <.ipa/.app path>"
+		exit 1
+	fi
 	local filename="$1"
 	local ext=${filename##*.}
 
@@ -167,8 +172,14 @@ function Install()
 	fi
 
 	local ret=0
-	$BINDIR/iosutil -s $DEVICE install $app
-	ret=$?
+	[ -z "$DEVICE" ] && DEVICE=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
+	if [ -z "$DEVICE" ]; then
+		Print $TTY_FATAL "Not found device!"
+		ret=1
+	else
+		$BINDIR/iosutil -s $DEVICE install $app >/dev/null 2>&1
+		ret=$?
+	fi
 
 	if [ "$ext" == "ipa" ]; then
 		rm -rf $tempdir
@@ -180,16 +191,21 @@ function ResignAndInstall()
 {
 	local filename="$1"
 
-	local resignapp="$RESULT_PATH/test.ipa"
-	Resign -p "$MOBILEPROVISION" -e "$ENTITLEMENTS" -i "$IDENTITY" "$filename" "$resignapp"
-	if [ $? -ne 0 ]; then
-		Print $TTY_FATAL "Resign fail!"
-		return 1
+	local app="$2"
+
+	if [ -z "$MOBILEPROVISION" ] && [ -z "$ENTITLEMENTS" ]; then
+		app="$filename"
+	else
+		Resign -p "$MOBILEPROVISION" -e "$ENTITLEMENTS" -i "$IDENTITY" "$filename" "$app"
+		if [ $? -ne 0 ]; then
+			Print $TTY_FATAL "Resign fail!"
+			return 1
+		fi
+		Print $TTY_PASS "Resign success"
 	fi
-	Print $TTY_PASS "Resign success"
 
 	#install
-	Install $resignapp
+	Install $app
 	if [ $? -ne 0 ]; then
 		Print $TTY_FATAL "Install fail!"
 		return 1
@@ -202,14 +218,11 @@ function RunAutomation()
 {
 	local device="$1"
 	local app="$2"
-	local result_path="$3"
+	local script="$3"
+	local template="$4"
+	local result_path="$5"
 
-	local script="$WORKDIR/monkey/UIAutoMonkey.js"
-	#local template="/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/Resources/templates/Leaks.tracetemplate"
-	#local template="/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/PlugIns/AutomationInstrument.xrplugin/Contents/Resources/Automation.tracetemplate"
-	#local template="/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/PlugIns/AutomationInstrument.bundle/Contents/Resources/Automation.tracetemplate"
-	local template=`instruments -s templates | grep Automation`
-
+	set -x
 	instruments \
 		-w "$device" \
 		-D "$result_path/trace" \
@@ -217,6 +230,7 @@ function RunAutomation()
 		"$app" \
 		-e UIARESULTSPATH "$result_path" \
 		-e UIASCRIPT $script
+	set +x
 }
 
 function ParseParams()
@@ -295,7 +309,9 @@ function Monkey()
 		Print $TTY_TRACE "Bundle id: $bundleid"
 
 		#resign and install
-		ResignAndInstall "$filename"
+		#local tmpfile="$RESULT_PATH/test.ipa"
+		local tmpfile="test.ipa"
+		ResignAndInstall "$filename" "$tmpfile"
 		if [ $? -ne 0 ]; then
 			Print $TTY_FATAL "Resign and install fail!"
 			exit 1
@@ -310,9 +326,11 @@ function Monkey()
 	fi
 
 	#run monkey testing
+	Print $TTY_TRACE "Start monkey testing..."
 	local start=$(date "+%Y-%m-%d-%H%M%S")
-	Print $TTY_TRACE "Start monkey testing"
-	RunAutomation $DEVICE $bundleid $RESULT_PATH
+	local script="$WORKDIR/monkey/UIAutoMonkey.js"
+	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
+	RunAutomation $DEVICE $bundleid $script $template $RESULT_PATH
 	if [ $? -ne 0 ]; then
 		Print $TTY_FATAL "Run monkey fail!"
 	fi
@@ -328,16 +346,22 @@ function Monkey()
 		exit 1
 	fi
 
-	local crashs=`$BINDIR/iosutil -s $DEVICE ls -b crash / | grep $exe | awk '{if($6 > "'"${exe}_${start}"'") print $6}'`
-	if [ -z "$crashs" ]; then
-		Print $TTY_TRACE "No crash file found!"
-	fi
+	local filter="${exe}_${start}"
+	local crashs=`$BINDIR/iosutil -s $DEVICE ls -b crash / | grep $exe | grep -v "LatestCrash" | awk '{if($6 > "'"$filter"'") print $6}'`
 
+	local crash_num=0
 	#download crash
 	for crash in $crashs
 	do
 		$BINDIR/iosutil -s $DEVICE pull -b crash /$crash $RESULT_PATH
+		let crash_num=$crash_num+1
 	done
+	if [ $crash_num -gt 0 ]; then
+		Print $TTY_FATAL "$crash_num crashs found!"
+	else
+		Print $TTY_PASS "No crash file found!"
+	fi
+
 
 	#uninstall
 	#$BINDIR/iosutil -s $DEVICE uninstall $bundleid
@@ -349,7 +373,11 @@ function Debug()
 	local device=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
 	local result_path="result"
 
-	RunAutomation $device $bundleid $result_path
+	local script="$WORKDIR/test/test.js"
+	#local script="$WORKDIR/monkey/UIAutoMonkey.js"
+	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
+	#local template=`instruments -s templates | grep Automation`
+	RunAutomation $device $bundleid $script $template $result_path
 }
 
 function Main()
@@ -368,6 +396,11 @@ function Main()
 		resign)
 			shift
 			Resign "$@"
+			break
+			;;
+		install)
+			shift
+			Install "$@"
 			break
 			;;
 		monkey)
