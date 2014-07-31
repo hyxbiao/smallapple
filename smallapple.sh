@@ -8,7 +8,6 @@ MOBILEPROVISION=
 ENTITLEMENTS=
 IDENTITY=
 RESULT_PATH="${PWD}/result"
-#RESULT_PATH="/Users/hyxbiao/dep/instruments/result"
 ISBUNDLE=0
 
 #log配置，指定的路径要存在
@@ -310,8 +309,8 @@ function Monkey()
 		Print $TTY_TRACE "Bundle id: $bundleid"
 
 		#resign and install
-		#local tmpfile="$RESULT_PATH/test.ipa"
-		local tmpfile="test.ipa"
+		local tmpfile="$RESULT_PATH/test.ipa"
+		#local tmpfile="test.ipa"
 		ResignAndInstall "$filename" "$tmpfile"
 		if [ $? -ne 0 ]; then
 			Print $TTY_FATAL "Resign and install fail!"
