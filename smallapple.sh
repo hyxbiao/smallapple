@@ -7,7 +7,8 @@ DEVICE=
 MOBILEPROVISION=
 ENTITLEMENTS=
 IDENTITY=
-RESULT_PATH="result"
+RESULT_PATH="${PWD}/result"
+#RESULT_PATH="/Users/hyxbiao/dep/instruments/result"
 ISBUNDLE=0
 
 #log配置，指定的路径要存在
@@ -223,7 +224,7 @@ function RunAutomation()
 	local result_path="$5"
 
 	set -x
-	instruments \
+	xcrun instruments \
 		-w "$device" \
 		-D "$result_path/trace" \
 		-t "$template" \
@@ -335,6 +336,9 @@ function Monkey()
 		Print $TTY_FATAL "Run monkey fail!"
 	fi
 	local end=$(date "+%Y-%m-%d-%H%M%S")
+	#Print $TTY_TRACE "change directory"
+	#cd tmp
+	#RunAutomation $DEVICE $bundleid $script $template $RESULT_PATH
 
 	#collect result data
 	#detect crash 
