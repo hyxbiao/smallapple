@@ -3,13 +3,6 @@
 WORKDIR=$(cd "$(dirname "$0")"; pwd)
 BINDIR="$WORKDIR/bin"
 
-DEVICE=
-MOBILEPROVISION=
-ENTITLEMENTS=
-IDENTITY=
-RESULT_PATH="${PWD}/result"
-ISBUNDLE=0
-
 #log配置，指定的路径要存在
 CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
@@ -85,18 +78,32 @@ function MainUsage()
 	echo "       install        : install app"
 	echo "       appinfo        : get app infomation"
 	echo "       resign         : resign app"
-	echo "       monkey         : run monkey testing"
+	echo ""
+	echo "       automation     : automation testing"
 	exit 0
 }
-function MonkeyUsage()
+function AutomationUsage()
 {
-	echo "usage: $MODULE_NAME monkey [options] <.ipa/.app path | bundle id>"
+	echo "usage: $MODULE_NAME automation [options] <.ipa/.app path | bundle id>"
 	echo "options:"
-	echo "    -d <device id>                 : specify device id"
-	echo "    -p <.mobileprovision path>     : .mobileprovision path"
-	echo "    -e <entitlement path>          : entitlement path"
-	echo "    -i <developer identity>        : ios developer identity"
+	echo "    -s <device id>                 : specify device id. default the first found device"
 	echo "    -b                             : use bundle id instead of app path"
+	echo "    -o <result dir>                : result direcotry. default \$PWD/result"
+	echo ""
+	echo "script options:"
+	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor.tracetemplate"
+	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/monkey/UIAutoMonkey.js"
+	echo ""
+	echo "resign options:"
+	echo "    -p <.mobileprovision path>     : .mobileprovision path"
+	echo "      or  -e <entitlement path>    : entitlement path"
+	echo "    -i <developer identity>        : ios developer identity"
+	echo ""
+	echo "example:"
+	echo "    $MODULE_NAME automation test.ipa"
+	echo "    $MODULE_NAME automation -b com.baidu.BaiduMobile"
+	echo "    $MODULE_NAME automation -c <testcase> -b com.baidu.BaiduMobile"
+	echo "    $MODULE_NAME automation -s <device> -p <provision> -i <identity> -c <testcase> test.ipa"
 	exit 0
 }
 
@@ -172,12 +179,12 @@ function Install()
 	fi
 
 	local ret=0
-	[ -z "$DEVICE" ] && DEVICE=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
-	if [ -z "$DEVICE" ]; then
+	[ -z "$device" ] && device=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
+	if [ -z "$device" ]; then
 		Print $TTY_FATAL "Not found device!"
 		ret=1
 	else
-		$BINDIR/iosutil -s $DEVICE install $app >/dev/null 2>&1
+		$BINDIR/iosutil -s $device install $app >/dev/null 2>&1
 		ret=$?
 	fi
 
@@ -193,10 +200,10 @@ function ResignAndInstall()
 
 	local app="$2"
 
-	if [ -z "$MOBILEPROVISION" ] && [ -z "$ENTITLEMENTS" ]; then
+	if [ -z "$mobileprovision" ] && [ -z "$entitlements" ]; then
 		app="$filename"
 	else
-		Resign -p "$MOBILEPROVISION" -e "$ENTITLEMENTS" -i "$IDENTITY" "$filename" "$app"
+		Resign -p "$mobileprovision" -e "$entitlements" -i "$identity" "$filename" "$app"
 		if [ $? -ne 0 ]; then
 			Print $TTY_FATAL "Resign fail!"
 			return 1
@@ -205,6 +212,7 @@ function ResignAndInstall()
 	fi
 
 	#install
+	Print $TTY_TRACE "Start install, please wait..."
 	Install $app
 	if [ $? -ne 0 ]; then
 		Print $TTY_FATAL "Install fail!"
@@ -222,85 +230,82 @@ function RunAutomation()
 	local template="$4"
 	local result_path="$5"
 
-	set -x
-	xcrun instruments \
-		-w "$device" \
-		-D "$result_path/trace" \
-		-t "$template" \
-		"$app" \
-		-e UIARESULTSPATH "$result_path" \
-		-e UIASCRIPT $script
-	set +x
+	$BINDIR/automation.sh -s "$device" -t "$template" -c "$script" -o "$result_path" "$app"
 }
 
-function ParseParams()
+function Automation() 
 {
-	[ $# -eq 0 ] && return -1
+	local ret=0
+	local device
+	local result_path="${PWD}/result"
+	local isbundle=0
+
+	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
+	local script="$WORKDIR/monkey/UIAutoMonkey.js"
+
+	local mobileprovision
+	local entitlements
+	local identity
+
+	[ $# -eq 0 ] && AutomationUsage
 
 	while [ $# -gt 0 ]
 	do
 		case "$1" in 
-		-d)
-			DEVICE="$2"
+		-s)
+			device="$2"
 			shift 2
 			;;
-		-p)
-			MOBILEPROVISION="$2"
-			shift 2
-			;;
-		-e)
-			ENTITLEMENTS="$2"
-			shift 2
-			;;
-		-i)
-			IDENTITY="$2"
-			shift 2
-			;;
-		-r)
-			RESULT_PATH="$2"
+		-o)
+			result_path="$2"
 			shift 2
 			;;
 		-b)
-			ISBUNDLE=1
+			isbundle=1
 			shift 1
 			;;
+		-t)
+			template="$2"
+			shift 2
+			;;
+		-c)
+			script="$2"
+			shift 2
+			;;
+		-p)
+			mobileprovision="$2"
+			shift 2
+			;;
+		-e)
+			entitlements="$2"
+			shift 2
+			;;
+		-i)
+			identity="$2"
+			shift 2
+			;;
 		-*)	echo "Unkown option \"$1\""
-			return -1
+			AutomationUsage
 			;;
 		*)	break
 			;;
 		esac
 	done
-	return $#
-}
-
-function Monkey() 
-{
-	local ret=0
-	#process params
-	ParseParams "$@"
-	ret=$?
-	if [ $ret -eq 255 ]; then
-		MonkeyUsage
+	if [ $# -ne 1 ]; then
+		AutomationUsage
 	fi
 	#if no specify device, select the first available device
-	[ -z "$DEVICE" ] && DEVICE=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
-	if [ -z "$DEVICE" ]; then
-		MonkeyUsage
-	fi
-	let ret=$#-ret
-	shift $ret
-	if [ $# -ne 1 ]; then
-		MonkeyUsage
+	[ -z "$device" ] && device=`$BINDIR/iosutil devices | awk '{print $2; exit}'`
+	if [ -z "$device" ]; then
+		AutomationUsage
 	fi
 
 	local filename="$1"
 
-	mkdir -p $RESULT_PATH
-
-	#get app bundle id for uninstall later if necessary
+	mkdir -p $result_path
+	#get app bundle id
 	local bundleid
-	if [ $ISBUNDLE -eq 0 ]; then
+	if [ $isbundle -eq 0 ]; then
 		bundleid=`AppInfo CFBundleIdentifier "$filename"`
 		if [ $? -ne 0 ] || [ -z "$bundleid" ]; then
 			Print $TTY_FATAL "Get bundle id fail! Is it a valid app?"
@@ -309,8 +314,7 @@ function Monkey()
 		Print $TTY_TRACE "Bundle id: $bundleid"
 
 		#resign and install
-		local tmpfile="$RESULT_PATH/test.ipa"
-		#local tmpfile="test.ipa"
+		local tmpfile="$result_path/test.ipa"
 		ResignAndInstall "$filename" "$tmpfile"
 		if [ $? -ne 0 ]; then
 			Print $TTY_FATAL "Resign and install fail!"
@@ -326,48 +330,10 @@ function Monkey()
 	fi
 
 	#run monkey testing
-	Print $TTY_TRACE "Start monkey testing..."
-	local start=$(date "+%Y-%m-%d-%H%M%S")
-	local script="$WORKDIR/monkey/UIAutoMonkey.js"
-	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
-	RunAutomation $DEVICE $bundleid $script $template $RESULT_PATH
-	if [ $? -ne 0 ]; then
-		Print $TTY_FATAL "Run monkey fail!"
-	fi
-	local end=$(date "+%Y-%m-%d-%H%M%S")
-	#Print $TTY_TRACE "change directory"
-	#cd tmp
-	#RunAutomation $DEVICE $bundleid $script $template $RESULT_PATH
-
-	#collect result data
-	#detect crash 
-	Print $TTY_TRACE "Start collect crash and result"
-	local exe=`$BINDIR/iosutil listapp | grep $bundleid | awk '{print $2}'`
-	#local exe=`AppInfo CFBundleExecutable "$filename"`
-	if [ $? -ne 0 ] || [ -z "$exe" ]; then
-		Print $TTY_FATAL "Get process name fail!"
-		exit 1
-	fi
-
-	local filter="${exe}_${start}"
-	local crashs=`$BINDIR/iosutil -s $DEVICE ls -b crash / | grep $exe | grep -v "LatestCrash" | awk '{if($6 > "'"$filter"'") print $6}'`
-
-	local crash_num=0
-	#download crash
-	for crash in $crashs
-	do
-		$BINDIR/iosutil -s $DEVICE pull -b crash /$crash $RESULT_PATH
-		let crash_num=$crash_num+1
-	done
-	if [ $crash_num -gt 0 ]; then
-		Print $TTY_FATAL "$crash_num crashs found!"
-	else
-		Print $TTY_PASS "No crash file found!"
-	fi
-
+	RunAutomation $device $bundleid $script $template $result_path
 
 	#uninstall
-	#$BINDIR/iosutil -s $DEVICE uninstall $bundleid
+	#$BINDIR/iosutil -s $device uninstall $bundleid
 }
 
 function Debug()
@@ -406,9 +372,9 @@ function Main()
 			Install "$@"
 			break
 			;;
-		monkey)
+		automation)
 			shift
-			Monkey "$@"
+			Automation "$@"
 			break
 			;;
 		debug)
