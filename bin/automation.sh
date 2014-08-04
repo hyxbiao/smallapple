@@ -3,6 +3,10 @@
 WORKDIR=$(cd "$(dirname "$0")/.."; pwd)
 BINDIR="$WORKDIR/bin"
 
+INSTRUMENTS_DIR="instruments"
+CRASH_DIR="crash"
+DATA_DIR="data"
+
 MODULE_NAME="automation"
 
 TTY_FATAL=1
@@ -74,12 +78,14 @@ function Run()
 	local template="$4"
 	local result_path="$5"
 
+	local instruments_path="$result_path/$INSTRUMENTS_DIR"
+	mkdir -p $instruments_path
 	xcrun instruments \
 		-w "$device" \
-		-D "$result_path/${MODULE_NAME}" \
+		-D "$instruments_path/${MODULE_NAME}" \
 		-t "$template" \
 		"$app" \
-		-e UIARESULTSPATH "$result_path" \
+		-e UIARESULTSPATH "$instruments_path" \
 		-e UIASCRIPT $script
 }
 
@@ -98,11 +104,12 @@ function DetectCrash()
 
 	local crash_num=0
 
-	mkdir -p $result_path/crash
+	local crash_path="$result_path/$CRASH_DIR"
+	mkdir -p $crash_path
 	#download crash
 	for crash in $crashs
 	do
-		$BINDIR/iosutil -s $DEVICE pull -b crash /$crash $result_path/crash
+		$BINDIR/iosutil -s $DEVICE pull -b crash /$crash $crash_path
 		let crash_num=$crash_num+1
 	done
 
@@ -113,10 +120,13 @@ function ParseInstrumentTrace()
 {
 	local appname="$1"
 	local result_path="$2"
-	local trace="$result_path/${MODULE_NAME}.trace" 
 
-	mkdir -p $result_path/data
-	#InstrumentsParser $appname $trace
+	local instruments_path="$result_path/$INSTRUMENTS_DIR"
+	local trace="$instruments_path/${MODULE_NAME}.trace" 
+
+	local data_path="$result_path/$DATA_DIR"
+	mkdir -p "$data_path"
+	$BINDIR/instruments_parser -p "$appname" -i "$trace" -o "$data_path"
 }
 
 function Main()
@@ -192,9 +202,10 @@ function Main()
 	#parse trace
 	Print $TTY_TRACE "Start parse instrument trace"
 	ParseInstrumentTrace "$appname" "$result_path"
+	if [ $? -eq 0 ]; then
+		Print $TTY_TRACE "Start generate report, TODO..."
+	fi
 
-	#gernate report
-	#TODO
 	return $ret
 }
 
