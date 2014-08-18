@@ -109,7 +109,7 @@ function DetectCrash()
 	#download crash
 	for crash in $crashs
 	do
-		$BINDIR/iosutil -s $DEVICE pull -b crash /$crash $crash_path
+		$BINDIR/iosutil -s $device pull -b crash /$crash $crash_path
 		let crash_num=$crash_num+1
 	done
 
@@ -172,7 +172,7 @@ function Main()
 		Usage
 	fi
 	bundleid="$1"
-	local appname=`$BINDIR/iosutil listapp | grep $bundleid | awk '{print $2}'`
+	local appname=`$BINDIR/iosutil -s $device listapp | grep $bundleid | awk '{print $2}'`
 	if [ $? -ne 0 ] || [ -z "$appname" ]; then
 		Print $TTY_FATAL "Get process name fail!"
 		exit 1

@@ -92,7 +92,7 @@ function AutomationUsage()
 	echo ""
 	echo "script options:"
 	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor.tracetemplate"
-	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/monkey/UIAutoMonkey.js"
+	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/scripts/UIAutoMonkey.js"
 	echo ""
 	echo "resign options:"
 	echo "    -p <.mobileprovision path>     : .mobileprovision path"
@@ -241,7 +241,7 @@ function Automation()
 	local isbundle=0
 
 	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
-	local script="$WORKDIR/monkey/UIAutoMonkey.js"
+	local script="$WORKDIR/scripts/UIAutoMonkey.js"
 
 	local mobileprovision
 	local entitlements
@@ -343,7 +343,7 @@ function Debug()
 	local result_path="result"
 
 	local script="$WORKDIR/test/test.js"
-	#local script="$WORKDIR/monkey/UIAutoMonkey.js"
+	#local script="$WORKDIR/scripts/UIAutoMonkey.js"
 	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
 	#local template=`instruments -s templates | grep Automation`
 	RunAutomation $device $bundleid $script $template $result_path
