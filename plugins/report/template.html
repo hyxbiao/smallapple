@@ -1,0 +1,211 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>SmallApple Automation Report</title>
+
+		<script type="text/javascript" src="@workdir/js/jquery-1.11.1.min.js"></script>
+		<style type="text/css">
+${demo.css}
+		</style>
+		<script type="text/javascript">
+var resultdir = '@resultdir';
+var crashs = @crashs;
+var screenshot_dict = @screenshot_dict;
+function generateCrashLine(chart)
+{
+	for (var i=0; i<crashs.length; ++i) {
+		chart.xAxis.plotLines.push({
+			value: crashs[i][0],
+			width: 2,
+			color: 'red',
+			label: {
+				text: 'Crash',
+				rotation: 0,
+				align: 'center',
+				y: -30,
+			},
+			zIndex: 0
+		});
+	}
+}
+function showSummary()
+{
+	$('#crash_count').text(crashs.length);
+	for (var i=0; i<crashs.length; ++i) {
+		var href = [resultdir, 'crash', crashs[i][1]].join('/');
+		$('#crash_list').append('<li><a href="'+href+'" target="blank">'+crashs[i][1]+'</a></li>');
+	}
+}
+$(function () {
+var chart = {
+	chart: {
+        events: {
+            click: function(evt) {
+                var xValue = evt.xAxis[0].value;
+                var xAxis = evt.xAxis[0].axis;
+                
+                $.each(xAxis.plotLinesAndBands,function(){
+                    if(this.id === 'mark')
+                    {
+                        this.destroy();
+                    }
+                });
+				console.log('value: '+xValue);
+                xAxis.addPlotLine({
+                    value: xValue,
+                    width: 1,
+                    color: 'red',
+                    //dashStyle: 'dash',                   
+                    id: 'mark'
+                });
+
+            }
+        }
+	},
+	title: {
+		text: 'Perfermace',
+		x: -20 //center
+	},
+	xAxis: {
+		type: 'datetime',
+		plotLines: []
+	},
+	yAxis: [{
+		labels: {
+			enabled: false,
+			format: 'screenshot',
+			style: {
+				color: Highcharts.getOptions().colors[3]
+			},
+		},
+		height: 10,
+		style: {
+			color: Highcharts.getOptions().colors[3]
+		},
+	}, {
+		labels: {
+			format: '{value}%',
+			style: {
+				color: Highcharts.getOptions().colors[0]
+			},
+			x: 30,
+			align: 'right'
+		},
+		title: {
+			text: 'CPU',
+			offset: 40
+		},
+		top: 70,
+		height: 150,
+		min: 0,
+		max: 100,
+		style: {
+			color: Highcharts.getOptions().colors[0]
+		},
+		showLastLabel: true,
+		tickPositions: [0, 50, 90, 100],
+		plotBands: [{
+			color: '#eee',
+		    from: 90,
+		    to: 100,
+		}],
+	}, {
+		labels: {
+			format: '{value}MB',
+			style: {
+				color: Highcharts.getOptions().colors[7]
+			},
+			x:-20,
+		   align: 'right'
+		},
+		title: {
+			text: 'Memory',
+			offset: -10
+		},
+		top: 230,
+		height: 150,
+		min: 0,
+		style: {
+			color: Highcharts.getOptions().colors[7]
+		},
+		opposite: true
+	}],
+	rangeSelector: {
+		enabled: false,
+		selected: 1
+	},
+	legend: {
+		layout: 'vertical',
+		align: 'right',
+		verticalAlign: 'middle',
+		floating: true
+	},
+	plotOptions: {
+		area: {
+			pointStart: @pointStart
+		}
+	},
+	series: [{
+		name: 'CPU',
+		type: 'area',
+		yAxis: 1,
+		data: [@cpudata],
+		color: Highcharts.getOptions().colors[0],
+		tooltip: {
+			valueSuffix: ' %'
+		}
+	}, {
+		name: 'Memory',
+		type: 'area',
+		yAxis: 2,
+		data: [@memdata],
+		color: Highcharts.getOptions().colors[7],
+		tooltip: {
+			valueSuffix: ' MB'
+		}
+	}, {
+		name: 'Screenshot',
+		type: 'line',
+		yAxis: 0,
+		color: Highcharts.getOptions().colors[3],
+		tooltip: {
+			pointFormat: '<span style="color:{series.color}">\u25CF</span> {series.name}<br/>'
+		},
+		marker: { 
+			enabled: true,
+			//symbol: 'circle',
+			radius: 5
+		},
+		events: {
+			click: function(event) {
+				var url = [resultdir, 'instruments', 'Run 1', screenshot_dict[event.point.x]].join('/');
+				console.log(url);
+				window.open(url);
+		    },
+		},
+		data: @screenshot_data
+	}]
+};
+	showSummary();
+	generateCrashLine(chart);
+	$('#container').highcharts('StockChart', chart);
+});
+    
+
+		</script>
+	</head>
+	<body>
+		<div></div>
+		<h1 style="border-bottom: 1px solid #eee; padding-bottom:9px">Summary</h1>
+		<div id="smartdoctor" style="min-width: 310px; margin: 0 auto">
+			<p>Crash times:  <span id='crash_count' style="color: red">0</span></p>
+			<ul id='crash_list'>
+			</ul>
+		</div>
+		<br>
+		<div id="container" style="min-width: 310px; height: 500px; margin: 0 auto"></div>
+
+		<script src="@workdir/js/highcharts-custom-jquery.js"></script>
+	</body>
+</html>

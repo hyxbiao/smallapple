@@ -28,7 +28,7 @@ function UIAutoMonkey() {
 
 		// If the following line is uncommented, then screenshots are taken
 		// every "n" seconds.
-		//screenshotInterval: 5,
+		screenshotInterval: 5,
 
 		// Events are triggered based on the relative weights here. The event
 		// with this highest number gets triggered the most.
@@ -317,12 +317,27 @@ UIAutoMonkey.prototype.randomRadians = function() {
 	return Math.random() * 10 % (3.14159 * 2);
 };
 
+//add by hyxbiao
+UIAutoMonkey.prototype.formatDate = function(date) {
+	var yyyy = date.getFullYear();
+	var mm = date.getMonth()+1;
+	var dd = date.getDate();
+
+	var H = date.getHours();
+	var M = date.getMinutes();
+	var S = date.getSeconds();
+	var f = date.getMilliseconds();
+
+	return [yyyy, mm, dd, H, M, S, f].join('-');
+}
+
 UIAutoMonkey.prototype.takeScreenShotIfItIsTime = function() {
 	var now = (new Date()).valueOf();
 	if (!this._lastScreenshotTime) this._lastScreenshotTime = 0;
 
 	if (now - this._lastScreenshotTime > this.config.screenshotInterval * 1000) {
-		var filename = "monkey-" + (new Date()).toISOString().replace(/[:\.]+/g, "-");
+		//var filename = "monkey-" + (new Date()).toISOString().replace(/[:\.]+/g, "-");
+		var filename = "monkey-" + this.formatDate(new Date());
 		this.target().captureScreenWithName(filename);
 		this._lastScreenshotTime = now;
 	}

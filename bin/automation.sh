@@ -2,6 +2,7 @@
 
 WORKDIR=$(cd "$(dirname "$0")/.."; pwd)
 BINDIR="$WORKDIR/bin"
+PLUGINDIR="$WORKDIR/plugins"
 
 INSTRUMENTS_DIR="instruments"
 CRASH_DIR="crash"
@@ -203,7 +204,11 @@ function Main()
 	Print $TTY_TRACE "Start parse instrument trace"
 	ParseInstrumentTrace "$appname" "$result_path"
 	if [ $? -eq 0 ]; then
-		Print $TTY_TRACE "Start generate report, TODO..."
+		local report="$PLUGINDIR/report/main.py"
+		if [ -f $report ]; then
+			Print $TTY_TRACE "Start generate report"
+			python $report $result_path
+		fi
 	fi
 
 	return $ret
