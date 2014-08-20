@@ -302,6 +302,12 @@ function Automation()
 
 	local filename="$1"
 
+	ps aux | grep -i instrument[s] >/dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		Print $TTY_FATAL "Another instruments process running!"
+		exit 1
+	fi
+
 	mkdir -p $result_path
 	#get app bundle id
 	local bundleid
