@@ -3,28 +3,20 @@
 WORKDIR=$(cd "$(dirname "$0")"; pwd)
 BINDIR="$WORKDIR/bin"
 
-#log配置，指定的路径要存在
+#log config
 CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.7.0"
+VERSION="0.8.0"
 
 MODULE_NAME="smallapple"
-#MODULE_NAME=`basename $0`
 
 LOG_FATAL=1
 LOG_WARNING=2
 LOG_NOTICE=4
 LOG_TRACE=8
 LOG_DEBUG=16
-#LOG_LEVEL_TEXT=(
-#	[1]="FATAL"
-#	[2]="WARNING"
-#	[4]="NOTICE"
-#	[8]="TRACE"
-#	[16]="DEBUG"
-#)
 LOG_LEVEL_TEXT[1]="FATAL"
 LOG_LEVEL_TEXT[2]="WARNING"
 LOG_LEVEL_TEXT[4]="NOTICE"
@@ -35,38 +27,11 @@ TTY_FATAL=1
 TTY_PASS=2
 TTY_TRACE=4
 TTY_INFO=8
-#TTY_MODE_TEXT=(
-#	[1]="[FAIL ]"
-#	[2]="[PASS ]"
-#	[4]="[TRACE]"
-#	[8]=""
-#)
 TTY_MODE_TEXT[1]="[FAIL ]"
 TTY_MODE_TEXT[2]="[PASS ]"
 TTY_MODE_TEXT[4]="[TRACE]"
 TTY_MODE_TEXT[8]=""
 
-#0  OFF  
-#1  高亮显示  
-#4  underline  
-#5  闪烁  
-#7  反白显示  
-#8  不可见 
-
-#30  40  黑色
-#31  41  红色  
-#32  42  绿色  
-#33  43  黄色  
-#34  44  蓝色  
-#35  45  紫红色  
-#36  46  青蓝色  
-#37  47  白色 
-#TTY_MODE_COLOR=(
-#	[1]="1;31"	
-#	[2]="1;32"
-#	[4]="0;36"	
-#	[8]="1;33"
-#)
 TTY_MODE_COLOR[1]="1;31"	
 TTY_MODE_COLOR[2]="1;32"
 TTY_MODE_COLOR[4]="0;36"	
@@ -74,7 +39,8 @@ TTY_MODE_COLOR[8]="1;33"
 
 function MainUsage()
 {
-	echo "usage: $MODULE_NAME [tool]"
+	echo "$MODULE_NAME version $VERSION"
+	echo ""
 	echo "       install        : install app"
 	echo "       appinfo        : get app infomation"
 	echo "       resign         : resign app"
