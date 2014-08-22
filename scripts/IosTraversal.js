@@ -365,58 +365,6 @@ function traversalTree(level){
 	
 }
 
-/*
-var target = UIATarget.localTarget();
-var app = target.frontMostApp();
-var window = app.mainWindow();
-
-//UIALogger.logDebug(obj2string(window));
-
-
-//window.logElement();
-window.logElementTree();
-
-var tabbar = window.elements()[3];
-tabbar.elements()[3].tap();
-
-window.logElementTree();
-
-window.elements()[1].elements()[1].tap();
-
-window.logElementTree();
-
-var current_all_element_arr = [];
-
-target.pushTimeout(0);
-getCurrentLayerElements(window.elements(),current_all_element_arr);
-target.popTimeout();
-	
-UIALogger.logDebug("current_all_element_arr length: " + current_all_element_arr.length.toString());
-for (var i = 0; i < current_all_element_arr.length; i++) {
-	UIALogger.logDebug("current_all_element_arr: " + getObjectClassName(current_all_element_arr[i]));
-};
-
-*/
-/*
-var elements = window.elements();
-UIALogger.logDebug(elements.length.toString());
-
-for (var i = 0; i < elements.length; i++) {
-	UIALogger.logDebug( getObjectClassName(elements[i]) );
-};
-
-//UIALogger.logDebug(obj2string(window));
-
-
-var current_all_element_arr = [];
-current_all_element_arr = window.getChildren();
-//getCurrentLayerElements(elements,current_all_element_arr);
-
-UIALogger.logDebug(current_all_element_arr.length.toString());
-for (var i = 0; i < current_all_element_arr.length; i++) {
-	UIALogger.logDebug( getObjectClassName(current_all_element_arr[i]) );
-};
-*/
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
