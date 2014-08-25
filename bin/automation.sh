@@ -181,11 +181,11 @@ function Main()
 
 	local ret=0
 	local start=$(date "+%Y-%m-%d-%H%M%S")
-	Print $TTY_TRACE "[$start] Start monkey testing..."
+	Print $TTY_TRACE "[$start] Start automation testing..."
 	Run $device $bundleid $script $template $result_path
 	ret=$?
 	if [ $ret -ne 0 ]; then
-		Print $TTY_FATAL "Run monkey fail!"
+		Print $TTY_FATAL "Run automation fail!"
 	fi
 	local end=$(date "+%Y-%m-%d-%H%M%S")
 	Print $TTY_TRACE "[$end] Testing finish."
