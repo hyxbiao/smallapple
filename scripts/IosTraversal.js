@@ -335,9 +335,11 @@ IosTraversal.prototype.traversalTree = function(level){
 			UIALogger.logMessage("after traversal all node, start random[" + random_index.toString() + "] visit tabbar or navigationbar button");
 			UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " 
 				+  last_tapped_button_arr[random_index].getObjectClassName()  + ":" + last_tapped_button_arr[random_index].name());
-			target.pushTimeout(0.5);
+			target.pushTimeout(2);
 			last_tapped_button_arr[random_index].tap();
 			target.popTimeout();
+
+			target.delay(1);
 			this.traversalTree(level+1);
 			//return;
 		}
@@ -371,10 +373,12 @@ IosTraversal.prototype.traversalTree = function(level){
 						" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
 						" isVisible: " + current_undo_element_arr[i].isVisible().toString());
 					*/
-					target.pushTimeout(0.5);
+					target.pushTimeout(2);
 					current_undo_element_arr[i].tap();
 					target.popTimeout();
 					this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
+
+					target.delay(1);
 					this.traversalTree(level+1);		
 				}else{
 					continue;
@@ -392,9 +396,11 @@ IosTraversal.prototype.traversalTree = function(level){
 					}else{
 						try{
 							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
-							target.pushTimeout(0.5);
+							target.pushTimeout(2);
 							current_undo_element_arr[i].tap();  //may throw could not be tapped
 							target.popTimeout();
+
+							target.delay(1);
 							this.traversalTree(level+1);	
 						}catch(e){
 							UIALogger.logWarning("could not tapped!! tap fail");
