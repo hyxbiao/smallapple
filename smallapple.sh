@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.8.1"
+VERSION="0.8.2"
 
 MODULE_NAME="smallapple"
 
@@ -167,8 +167,13 @@ function StartInstall()
 		exit 1
 	fi
 	Print $TTY_TRACE "Start install, please wait..."
+	local ret=0
 	Install "$1"
-	if [ $? -ne 0 ]; then
+	ret=$?
+	if [ $ret -eq 254 ]; then
+		Print $TTY_FATAL "Install fail, your application failed code-signing checks, please try Smallapple resign"
+		return 1
+	elif [ $ret -ne 0 ]; then
 		Print $TTY_FATAL "Install fail!"
 		return 1
 	fi
@@ -195,8 +200,13 @@ function ResignAndInstall()
 
 	#install
 	Print $TTY_TRACE "Start install, please wait..."
+	local ret=0
 	Install $app
-	if [ $? -ne 0 ]; then
+	ret=$?
+	if [ $ret -eq 254 ]; then
+		Print $TTY_FATAL "Install fail, your application failed code-signing checks, please try Smallapple resign"
+		return 1
+	elif [ $ret -ne 0 ]; then
 		Print $TTY_FATAL "Install fail!"
 		return 1
 	fi
