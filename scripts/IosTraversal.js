@@ -1,11 +1,30 @@
+//Copyright (c) 2014   phoenix_whu@163.com  2014/08/22
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 "use strict";
 
-/******* helper function  begin  ***********
-*/
-function getObjectClassName(obj) {
-	if (obj && obj.toString()) {    
+
+UIAElement.prototype.getObjectClassName = function(){
+	if (this && this.toString()) {    
     
-    	var str = obj.toString();
+    	var str = this.toString();
     
 	    /*
 	     * executed if the return of object.toString() is 
@@ -30,10 +49,10 @@ function getObjectClassName(obj) {
     }
     
     return undefined; 
-};
+}
 
-
-function obj2string(o){
+UIAElement.prototype.obj2string = function(){
+	var o = this;
 	var r=[];
 	if(typeof o=="string"){
 		return "\""+o.replace(/([\'\"\\])/g,"\\$1").replace(/(\n)/g,"\\n").replace(/(\r)/g,"\\r").replace(/(\t)/g,"\\t")+"\"";
@@ -57,63 +76,10 @@ function obj2string(o){
 	} 
 	return o.toString();
 }
-/******* helper function  end  ***********
-*/
 
-/////-----begin------ global dict ---------
-var G_Dict = {};
-
-function makeDictKey(obj_type,obj_name,obj_position){
-	var key = null;
-	var str_position = null;
-	str_position = obj_position.origin.x + '_' + obj_position.origin.y;
-	str_position += '_' + obj_position.size.width + '_' + obj_position.size.height;
-
-	key = obj_type + '_' + obj_name + '_' + str_position;
-
-	return key;
-}
-
-function addDict(obj_type,obj_name,obj_position,level){
-	var key = makeDictKey(obj_type,obj_name,obj_position);
-	//UIALogger.logDebug(key);
-	var value = {};
-	value["level"] = level;
-	value["status"] = "undo";
-	
-	if(! G_Dict.hasOwnProperty(key)){
-		G_Dict[key] = value;
-	}
-	//printDict();
-}
-
-function seekDict(obj_type,obj_name,obj_position){
-	var key = makeDictKey(obj_type,obj_name,obj_position);
-
-	return G_Dict[key];
-}
-
-function printDict(){
-	var description = "";
-	for(var i in G_Dict){
-		var property = G_Dict[i];
-		description += i + " = " + property["level"] + '_' + property["status"] + ';\n';
-	}
-
-	UIALogger.logDebug(description);
-}
-
-function setDictElementDone(obj_type,obj_name,obj_position){
-	var key = makeDictKey(obj_type,obj_name,obj_position);
-	var value = G_Dict[key];
-	value["status"] = "done";
-}
-/////-----end------ global dict ---------
-
-
-function checkCanBeTapped(element){
-	if( !element.isValid() || !element.isEnabled() || !element.isVisible() 
-		|| getObjectClassName(element) == "UIAStaticText"){
+UIAElement.prototype.checkCanBeTapped = function(){
+	if( !this.isValid() || !this.isEnabled() || !this.isVisible() 
+		|| this.getObjectClassName() == "UIAStaticText"){
 		/*target.pushTimeout(0);
 		var ele_name = element.name();
 		target.popTimeout();
@@ -124,55 +90,132 @@ function checkCanBeTapped(element){
 	}
 }
 
-function getTappedButton(root,ele_arr){
-	if (root instanceof UIAElementNil) {
-		UIALogger.logWarning("in getTappedButton,the root node is null");
-		return;
-	}
-	
-	var elements = null;
-	
-	for (var i = 0; i < root.length; i++){
-		var ele = root[i];
-		//UIALogger.logDebug("in array: [" + i.toString() + "] " + getObjectClassName(root[i]) + " _ " + root[i].name() );
-		if( ele instanceof UIAButton && checkCanBeTapped(ele)){
-			ele_arr.push(ele);
-		}
+//ele_arr :  a array, input and output parament
+UIAElement.prototype.getTappedButton = function(ele_arr){
+	var root = new Array();
+	root = this.elements();
 
-		elements = root[i].elements();
-		if (elements instanceof UIAElementNil) {
-			//UIALogger.logDebug("get the null node");
-			continue;
-		}else{
-			getTappedButton(elements,ele_arr);
+	var getTappedButtonChildren = function(root,ele_arr){
+		if (root instanceof UIAElementNil) {
+			UIALogger.logWarning("in getTappedButton,the root node is null");
+			return;
 		}
-	};
+		
+		var elements = null;
+		
+		for (var i = 0; i < root.length; i++){
+			var ele = root[i];
+			//UIALogger.logDebug("in array: [" + i.toString() + "] " + getObjectClassName(root[i]) + " _ " + root[i].name() );
+			if( ele instanceof UIAButton && ele.checkCanBeTapped()){
+				ele_arr.push(ele);
+			}
+
+			elements = root[i].elements();
+			if (elements instanceof UIAElementNil) {
+				//UIALogger.logDebug("get the null node");
+				continue;
+			}else{
+				getTappedButtonChildren(elements,ele_arr);
+			}
+		};
+	}
+
+	getTappedButtonChildren(root,ele_arr);
 }
 
 //ele_arr :  a array, input and output parament
-function getCurrentLayerElements(root,ele_arr){
-	if (root instanceof UIAElementNil) {
-		UIALogger.logWarning("in getCurrentLayerElements,the root node is null");
-		return;
-	}
-	
-	var elements = null;
-	
-	for (var i = 0; i < root.length; i++){
-		//UIALogger.logDebug("in array: [" + i.toString() + "] " + getObjectClassName(root[i]) + " _ " + root[i].name() );
+UIAElement.prototype.getCurrentLayerElements = function(ele_arr){
+	var root = new Array();
+	root = this.elements();
 
-		ele_arr.push(root[i]);
-		elements = root[i].elements();
-		if (elements instanceof UIAElementNil) {
-			//UIALogger.logDebug("get the null node");
-			continue;
-		}else{
-			getCurrentLayerElements(elements,ele_arr);
+	var getCurrentLayerElementsChildren = function(root,ele_arr){
+		if (root instanceof UIAElementNil) {
+			UIALogger.logWarning("in getCurrentLayerElements,the root node is null");
+			return;
 		}
-	};
+		
+		var elements = null;
+		
+		for (var i = 0; i < root.length; i++){
+			//UIALogger.logDebug("in array: [" + i.toString() + "] " + getObjectClassName(root[i]) + " _ " + root[i].name() );
+
+			ele_arr.push(root[i]);
+			elements = root[i].elements();
+			if (elements instanceof UIAElementNil) {
+				//UIALogger.logDebug("get the null node");
+				continue;
+			}else{
+				getCurrentLayerElementsChildren(elements,ele_arr);
+			}
+		};
+	}
+
+	getCurrentLayerElementsChildren(root,ele_arr);
 }
 
-function rmDoneElements(ele_arr,level){
+
+/////-----begin------ global dict ---------
+function GDict(){
+	this.G_Dict = {};
+	this.dict_length = 0;
+}
+
+GDict.prototype.makeDictKey = function(obj_type,obj_name,obj_position){
+	var key = null;
+	var str_position = null;
+	str_position = obj_position.origin.x + '_' + obj_position.origin.y;
+	str_position += '_' + obj_position.size.width + '_' + obj_position.size.height;
+
+	key = obj_type + '_' + obj_name + '_' + str_position;
+
+	return key;
+}
+
+GDict.prototype.addDict = function(obj_type,obj_name,obj_position,level){
+	var key = this.makeDictKey(obj_type,obj_name,obj_position);
+	//UIALogger.logDebug(key);
+	var value = {};
+	value["level"] = level;
+	value["status"] = "undo";
+	
+	if(! this.G_Dict.hasOwnProperty(key)){
+		this.G_Dict[key] = value;
+		this.dict_length += 1;
+	}
+	//printDict();
+}
+
+GDict.prototype.seekDict = function(obj_type,obj_name,obj_position){
+	var key = this.makeDictKey(obj_type,obj_name,obj_position);
+
+	return this.G_Dict[key];
+}
+
+GDict.prototype.setDictElementDone = function(obj_type,obj_name,obj_position){
+	//this.printDict();
+	var key = this.makeDictKey(obj_type,obj_name,obj_position);
+	//var value = this.G_Dict.key;
+	//UIALogger.logDebug("in setDictElementDone set dict key: " + key + " done");
+	this.G_Dict[key]["status"] = "done";
+}
+
+GDict.prototype.printDict = function(){
+	var description = "";
+	for(var key in this.G_Dict){
+		var property = this.G_Dict[key];
+		description += key + " = " + property["level"] + '_' + property["status"] + ';\n';
+	}
+
+	UIALogger.logDebug("G_Dict length is " + this.dict_length.toString());
+	UIALogger.logDebug(description);
+}
+/////-----end------ global dict ---------
+
+function IosTraversal(){
+	this.gdict = new GDict();
+}
+
+IosTraversal.prototype.rmDoneElements = function(ele_arr,level){
 	var new_dict = {};
 	var new_arr = [];
 
@@ -183,7 +226,7 @@ function rmDoneElements(ele_arr,level){
 	for (var i = 0; i <= ele_arr.length - 1; i++) {			
 		var test = ele_arr[i];
 		
-		//UIALogger.logDebug(test.toString());
+		//UIALogger.logDebug("in rmDoneElements " + i.toString());
 		
 		if( ele_arr[i] instanceof UIAElementNil) {
 			UIALogger.logWarning("null node,not process");
@@ -194,13 +237,15 @@ function rmDoneElements(ele_arr,level){
 		obj_name = ele_arr[i].name();
 		obj_position = ele_arr[i].rect();
 		target.popTimeout();
-		obj_type = getObjectClassName(ele_arr[i]);
+		obj_type = ele_arr[i].getObjectClassName();
+
+		//UIALogger.logDebug("obj_type: " + obj_type);
 
 		if(obj_type === undefined){
 			UIALogger.logWarning("when rmDoneElements " + obj_name + '_' + obj_position + "type is undefined");
 			continue;
 		}else{
-			if( checkCanBeTapped(ele_arr[i]) ){
+			if( ele_arr[i].checkCanBeTapped() ){
 				//assume only one navigationbar and uiatabbar in window
 				if( obj_type == "UIANavigationBar" ){
 					UIALogger.logMessage("add UIANavigationBar to dict");
@@ -211,13 +256,18 @@ function rmDoneElements(ele_arr,level){
 					new_dict.tabbar = ele_arr[i];
 				}
 
-				var value = seekDict(obj_type,obj_name,obj_position);
+				var value = this.gdict.seekDict(obj_type,obj_name,obj_position);
 				if(undefined == value){
+					//UIALogger.logDebug("seekDict not find result, so add to rmDoneElements array");
 					new_arr.push(ele_arr[i]);
-					addDict(obj_type,obj_name,obj_position,level);
+					this.gdict.addDict(obj_type,obj_name,obj_position,level);
 				}else{
+					//UIALogger.logDebug("status: " + value["status"] + "-----" + "level: " + value["level"]);
 					if(value["status"] == "undo"){
 						new_arr.push(ele_arr[i]);
+						//UIALogger.logDebug("seekDict status is undo, so add to rmDoneElements array");
+					}else{
+						//UIALogger.logDebug("seekDict status is done, so don't add to rmDoneElements array");
 					}
 				}
 			}else{
@@ -232,10 +282,7 @@ function rmDoneElements(ele_arr,level){
 }
 
 //use events to represent element
-function traversalTree(level){
-
-	var elements = window.elements();
-
+IosTraversal.prototype.traversalTree = function(level){
 	//window.logElementTree();
 
 	var current_all_element_arr = [];
@@ -247,7 +294,7 @@ function traversalTree(level){
 	var last_tapped_button_arr = [];  //merge navigationbar_button_arr and tabbar_button_arr
 
 	target.pushTimeout(0);
-	getCurrentLayerElements(elements,current_all_element_arr);
+	window.getCurrentLayerElements(current_all_element_arr);
 	target.popTimeout();
 	
 	UIALogger.logMessage("current_all_element_arr length: " + current_all_element_arr.length.toString());
@@ -255,19 +302,19 @@ function traversalTree(level){
 		UIALogger.logDebug("current_all_element_arr: " + getObjectClassName(current_all_element_arr[i]));
 	};*/
 	
-	current_undo_element_dict = rmDoneElements(current_all_element_arr,level);
+	current_undo_element_dict = this.rmDoneElements(current_all_element_arr,level);
 	current_undo_element_arr = current_undo_element_dict.undo_arr;
 	var navigationbar = current_undo_element_dict.navigationbar;
 	if( navigationbar != undefined){
 		target.pushTimeout(0);
-		getTappedButton(navigationbar.elements(),navigationbar_button_arr);
+		navigationbar.getTappedButton(navigationbar_button_arr);
 		target.popTimeout();
 	}
 
 	var tabbar = current_undo_element_dict.tabbar;
 	if( tabbar != undefined){
 		target.pushTimeout(0);
-		getTappedButton(tabbar.elements(),tabbar_button_arr);
+		tabbar.getTappedButton(tabbar_button_arr);
 		target.popTimeout();
 	}
 
@@ -287,11 +334,11 @@ function traversalTree(level){
 			var random_index = Math.floor( (Math.random() * last_tapped_button_arr.length) );
 			UIALogger.logMessage("after traversal all node, start random[" + random_index.toString() + "] visit tabbar or navigationbar button");
 			UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " 
-				+  getObjectClassName(last_tapped_button_arr[random_index])  + ":" + last_tapped_button_arr[random_index].name());
+				+  last_tapped_button_arr[random_index].getObjectClassName()  + ":" + last_tapped_button_arr[random_index].name());
 			target.pushTimeout(0.5);
 			last_tapped_button_arr[random_index].tap();
 			target.popTimeout();
-			traversalTree(level+1);
+			this.traversalTree(level+1);
 			//return;
 		}
 		else{
@@ -301,23 +348,23 @@ function traversalTree(level){
 	}
 	
 	for (var i = 0; i < current_undo_element_arr.length; i++) {
-		UIALogger.logDebug( "in for: " + i.toString());
+		UIALogger.logDebug( "in traversalTree for: " + i.toString());
 		target.pushTimeout(0);
 		var obj_name = current_undo_element_arr[i].name();
 		var obj_position = current_undo_element_arr[i].rect();
 		target.popTimeout();
-		var obj_type = getObjectClassName(current_undo_element_arr[i]);
+		var obj_type = current_undo_element_arr[i].getObjectClassName();
 		if( obj_type === undefined){
 			UIALogger.logWarning("level[" + level.toString() + "]:  " + obj_type + " is undefined");
 			continue;
 		}else{
-			var value = seekDict(obj_type,obj_name,obj_position);
+			var value = this.gdict.seekDict(obj_type,obj_name,obj_position);
 			if(value == undefined){
-				var key = makeDictKey(obj_type,obj_name,obj_position);
+				var key = this.gdict.makeDictKey(obj_type,obj_name,obj_position);
 				UIALogger.logMessage("seekDict " + key + " null, amazing...");
 
-				if(checkCanBeTapped(current_undo_element_arr[i])){
-					addDict(obj_type,obj_name,obj_position,level);
+				if(current_undo_element_arr[i].checkCanBeTapped()){
+					this.gdict.addDict(obj_type,obj_name,obj_position,level);
 
 					UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
 					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
@@ -327,28 +374,28 @@ function traversalTree(level){
 					target.pushTimeout(0.5);
 					current_undo_element_arr[i].tap();
 					target.popTimeout();
-					setDictElementDone(obj_type,obj_name,obj_position);
-					traversalTree(level+1);		
+					this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
+					this.traversalTree(level+1);		
 				}else{
 					continue;
 				}		
 			}else{
 				if(value["status"] == "undo"){
-					UIALogger.logDebug(value["level"] + '_' + value["status"]);
+					//UIALogger.logDebug(value["level"] + '_' + value["status"]);
 					UIALogger.logDebug("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
 					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
 						" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
 						" isVisible: " + current_undo_element_arr[i].isVisible().toString()); */
-					if( !checkCanBeTapped(current_undo_element_arr[i]) ){
-						setDictElementDone(obj_type,obj_name,obj_position);
+					if( !current_undo_element_arr[i].checkCanBeTapped() ){
+						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 						continue;
 					}else{
 						try{
-							setDictElementDone(obj_type,obj_name,obj_position);
+							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 							target.pushTimeout(0.5);
 							current_undo_element_arr[i].tap();  //may throw could not be tapped
 							target.popTimeout();
-							traversalTree(level+1);	
+							this.traversalTree(level+1);	
 						}catch(e){
 							UIALogger.logWarning("could not tapped!! tap fail");
 						}finally{			
@@ -362,14 +409,17 @@ function traversalTree(level){
 			}
 		}
 	};
-	
+	//this.gdict.printDict();	
 }
 
+IosTraversal.prototype.startTraversal = function(){
+	this.traversalTree(0);
+	UIALogger.logMessage("end all traversal");
+}
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
 var window = app.mainWindow();
 
-traversalTree(0);
-
-//printDict();
+var iostraversal = new IosTraversal();
+iostraversal.startTraversal();
