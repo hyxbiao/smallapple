@@ -255,6 +255,10 @@ IosTraversal.prototype.rmDoneElements = function(ele_arr,level){
 					UIALogger.logMessage("add UIATabBar to dict");
 					new_dict.tabbar = ele_arr[i];
 				}
+				if( obj_type == "UIAToolbar" ){
+					UIALogger.logMessage("add UIAToolbar to dict");
+					new_dict.toolbar = ele_arr[i];
+				}
 
 				var value = this.gdict.seekDict(obj_type,obj_name,obj_position);
 				if(undefined == value){
@@ -285,12 +289,27 @@ IosTraversal.prototype.rmDoneElements = function(ele_arr,level){
 IosTraversal.prototype.traversalTree = function(level){
 	//window.logElementTree();
 
+	//target.delay(1);
+
+	/*
+	var keyboard = app.keyboard();
+	if( !(keyboard instanceof UIAElementNil) ){
+		keyboard.typeString("test");
+	}*/
+
+	var alert = app.alert()
+	if( !(alert instanceof UIAElementNil) ){
+		alert.defaultButton().tap();
+		target.delay(1);
+	}
+
 	var current_all_element_arr = [];
 	var current_undo_element_dict = {};
 	var current_undo_element_arr = [];
 
 	var navigationbar_button_arr = [];
 	var tabbar_button_arr = [];
+	var toolbar_button_arr = [];
 	var last_tapped_button_arr = [];  //merge navigationbar_button_arr and tabbar_button_arr
 
 	target.pushTimeout(0);
@@ -318,7 +337,15 @@ IosTraversal.prototype.traversalTree = function(level){
 		target.popTimeout();
 	}
 
-	last_tapped_button_arr = navigationbar_button_arr.concat(tabbar_button_arr);
+	var toolbar = current_undo_element_dict.toolbar;
+	if( toolbar != undefined){
+		target.pushTimeout(0);
+		toolbar.getTappedButton(toolbar_button_arr);
+		target.popTimeout();
+	}
+
+	var tmp_arr = navigationbar_button_arr.concat(tabbar_button_arr);
+	last_tapped_button_arr = tmp_arr.concat(toolbar_button_arr);
 
 	/*for (var i = 0; i < current_undo_element_arr.length; i++) {
 		UIALogger.logDebug("current_undo_element_arr: " + getObjectClassName(current_all_element_arr[i]) + ':' +  current_all_element_arr[i].name());
@@ -330,6 +357,7 @@ IosTraversal.prototype.traversalTree = function(level){
 	UIALogger.logMessage("last_tapped_button_arr length: " + last_tapped_button_arr.length.toString());
 
 	if(current_undo_element_arr.length <= 0){
+
 		if(last_tapped_button_arr.length > 0){
 			var random_index = Math.floor( (Math.random() * last_tapped_button_arr.length) );
 			UIALogger.logMessage("after traversal all node, start random[" + random_index.toString() + "] visit tabbar or navigationbar button");
@@ -345,6 +373,8 @@ IosTraversal.prototype.traversalTree = function(level){
 		}
 		else{
 			UIALogger.logMessage("level[" + level.toString() + "]:  " + "current_undo_element_arr is empty.");
+			//because no back key in ios,so can't back to previous ui 
+			//return means exit the program
 			return;
 		}
 	}
@@ -361,12 +391,20 @@ IosTraversal.prototype.traversalTree = function(level){
 			continue;
 		}else{
 			var value = this.gdict.seekDict(obj_type,obj_name,obj_position);
-			if(value == undefined){
+			if(value == undefined){ //don't know why this!!
 				var key = this.gdict.makeDictKey(obj_type,obj_name,obj_position);
 				UIALogger.logMessage("seekDict " + key + " null, amazing...");
 
 				if(current_undo_element_arr[i].checkCanBeTapped()){
+
 					this.gdict.addDict(obj_type,obj_name,obj_position,level);
+
+					if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
+						current_undo_element_arr[i].setValue("test");
+						
+						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
+						continue;
+					}
 
 					UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
 					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
@@ -394,6 +432,13 @@ IosTraversal.prototype.traversalTree = function(level){
 						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 						continue;
 					}else{
+						if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
+							current_undo_element_arr[i].setValue("test");
+
+							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
+							continue;
+						}
+
 						try{
 							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 							target.pushTimeout(2);
