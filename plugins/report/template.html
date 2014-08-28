@@ -10,8 +10,26 @@ ${demo.css}
 		</style>
 		<script type="text/javascript">
 var resultdir = '@resultdir';
+var start_times = @start_times;
 var crashs = @crashs;
 var screenshot_dict = @screenshot_dict;
+function generateStartTimesLine(chart)
+{
+	for (var i=0; i<start_times.length; ++i) {
+		chart.xAxis.plotLines.push({
+			value: start_times[i][0],
+			width: 2,
+			color: 'gray',
+			label: {
+				text: 'Run ' + start_times[i][1],
+				rotation: 0,
+				align: 'center',
+				y: -30,
+			},
+			zIndex: 0
+		});
+	}
+}
 function generateCrashLine(chart)
 {
 	for (var i=0; i<crashs.length; ++i) {
@@ -179,7 +197,9 @@ var chart = {
 		},
 		events: {
 			click: function(event) {
-				var url = [resultdir, 'instruments', 'Run 1', screenshot_dict[event.point.x]].join('/');
+				var idx = screenshot_dict[event.point.x][0];
+				var filename = screenshot_dict[event.point.x][1];
+				var url = [resultdir, 'instruments', 'Run '+idx, filename].join('/');
 				console.log(url);
 				window.open(url);
 		    },
@@ -188,6 +208,7 @@ var chart = {
 	}]
 };
 	showSummary();
+	generateStartTimesLine(chart);
 	generateCrashLine(chart);
 	$('#container').highcharts('StockChart', chart);
 });

@@ -24,44 +24,52 @@ class Report(object):
         self.work_dir = work_dir
         self.result_dir = result_dir
 
-    def readData(self):
-        d = os.path.join(self.result_dir, DATA_DIR)
-        if not os.path.isdir(d):
-            print "%s is not found!" % d
-            return False
-        filename = os.path.join(d, "ActivityMonitor-1")
-        if not os.path.isfile(filename):
-            print "%s is not found!" % filename
-            return False
-
-        keys = ["CPUUsage", "ResidentSize"]
-        sample_keys = keys + ["Date"]
-        data = {}
-        data["summary"] = dict((k, []) for k in keys)
-        data["samples"] = dict((k, []) for k in sample_keys)
+    def readPerfermaceSample(self, filename):
+        keys = ["CPUUsage", "ResidentSize", "Date"]
+        samples = []
         try:
             rdata = False
             with open(filename, "r") as f:
                 rdata = json.load(f)
                 f.close()
             if not rdata or len(rdata) == 0:
-                print "no found data!"
+                print "no found data in '%'!" % (filename)
                 return False
             for item in rdata:
-                for k in sample_keys:
-                    v = item[k].encode('utf-8') if type(item[k]) is unicode else item[k]
+                nitem = {}
+                for k in keys:
+                    v = item[k]
+                    v = v.encode('utf-8') if type(v) is unicode else v
                     if k == 'Date':
                         v = datetime.datetime.strptime(v, '%Y-%m-%d %H:%M:%S:%f')
-                    data["samples"][k].append(v)
+                    nitem[k] = v
+                samples.append(nitem)
 
         except Exception, e:
             print "Exception: %s" % str(e)
             return False
-        for k in keys:
-            avg = sum(data["samples"][k]) / len(data["samples"][k])
-            xmin = min(data["samples"][k])
-            xmax = max(data["samples"][k])
-            data["summary"][k] = [avg, xmin, xmax]
+        return samples
+
+    def readData(self):
+        d = os.path.join(self.result_dir, DATA_DIR)
+        if not os.path.isdir(d):
+            print "%s is not found!" % d
+            return False
+
+        flist = []
+        for filename in os.listdir(d):
+            if filename.startswith("ActivityMonitor"):
+                idx = int(filename.split('-')[1])
+                flist.append([idx, filename])
+        flist.sort()
+
+        data = []
+        for item in flist:
+            idx = item[0]
+            filename = os.path.join(d, item[1])
+            samples = self.readPerfermaceSample(filename)
+            if samples:
+                data.append([idx, samples])
         return data
 
     def printData(self, data):
@@ -94,13 +102,9 @@ class Report(object):
                 continue
         return crash
 
-    def readScreenshot(self):
-        d = os.path.join(self.result_dir, INSTRUMENTS_DIR, 'Run 1')
-        if not os.path.isdir(d):
-            print "%s is not found!" % d
-            return False
+    def readMatchImages(self, dirname):
         images = []
-        for filename in os.listdir(d):
+        for filename in os.listdir(dirname):
             name, ext = os.path.splitext(filename)
             if ext != '.png':
                 continue
@@ -115,6 +119,27 @@ class Report(object):
                 print "Exception: %s" % str(e)
                 continue
         return images
+
+    def readScreenshot(self):
+        d = os.path.join(self.result_dir, INSTRUMENTS_DIR)
+        if not os.path.isdir(d):
+            print "%s is not found!" % d
+            return False
+        dlist = []
+        for name in os.listdir(d):
+            if name.startswith("Run"):
+                idx = int(name.split(' ')[1])
+                dlist.append([idx, name])
+        dlist.sort()
+
+        screenshots = []
+        for item in dlist:
+            idx = item[0]
+            path = os.path.join(d, item[1])
+            images = self.readMatchImages(path)
+            if images:
+                screenshots.append([idx, images])
+        return screenshots
 
     def generateHtml(self, trace_data, crash_data, screenshot):
         #read template
@@ -136,16 +161,22 @@ class Report(object):
         cpudata = []
         memdata = []
         pointstart = 0
+        start_times = []
         if trace_data:
-            samples = trace_data["samples"]
-            for i in range(len(samples['Date'])):
-                ts = int(calendar.timegm(samples['Date'][i].timetuple()) * 1000)
-                cpudata.append('[%u, %.2f]' % (ts, samples['CPUUsage'][i]))
-                memdata.append('[%u, %.2f]' % (ts, samples['ResidentSize'][i] / 1024.0 / 1024.0))
-            pointstart = int(calendar.timegm(samples['Date'][0].timetuple()) * 1000)
+            for item in trace_data:
+                idx = item[0]
+                samples = item[1]
+                for sample in samples:
+                    ts = int(calendar.timegm(sample['Date'].timetuple()) * 1000)
+                    cpudata.append('[%u, %.2f]' % (ts, sample['CPUUsage']))
+                    memdata.append('[%u, %.2f]' % (ts, sample['ResidentSize'] / 1024.0 / 1024.0))
+                first_ts = int(calendar.timegm(samples[0]['Date'].timetuple()) * 1000)
+                start_times.append([first_ts, idx])
+            pointstart = start_times.pop(0)
         render_data['cpudata'] = ','.join(cpudata)
         render_data['memdata'] = ','.join(memdata)
         render_data['pointStart'] = pointstart
+        render_data['start_times'] = json.dumps(start_times)
 
         #process crash
         crashs = []
@@ -160,11 +191,13 @@ class Report(object):
         screenshot_dict = {}
         screenshot_data = []
         if screenshot:
-            for s in screenshot:
-                ts = int(calendar.timegm(s[0].timetuple()) * 1000)
-                #path = os.path.join(self.result_dir, INSTRUMENTS_DIR, 'Run 1', s[1])
-                screenshot_dict[ts] = s[1]
-                screenshot_data.append([ts, 0])
+            for item in screenshot:
+                idx = item[0]
+                images = item[1]
+                for s in images:
+                    ts = int(calendar.timegm(s[0].timetuple()) * 1000)
+                    screenshot_dict[ts] = [idx, s[1]]
+                    screenshot_data.append([ts, 0])
         screenshot_data.sort()
         render_data['screenshot_dict'] = json.dumps(screenshot_dict)
         render_data['screenshot_data'] = json.dumps(screenshot_data)
@@ -183,6 +216,7 @@ class Report(object):
             #print crash
 
             data = self.readData()
+            #print data
             #self.printData(data)
 
             screenshot = self.readScreenshot()
