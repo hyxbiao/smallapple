@@ -215,6 +215,99 @@ function IosTraversal(){
 	this.gdict = new GDict();
 }
 
+//prepares for tap keyboard
+IosTraversal.prototype.getKeyBoardFather = function(){
+	var window_arr = app.windows();
+
+	//UIALogger.logDebug("windows length: " + window_arr.length.toString());
+
+	for (var i = 0; i < window_arr.length; i++) {
+		//UIALogger.logDebug("window_arr[" + i.toString() + "]: " + getObjectClassName(window_arr[i]))
+
+		var window_children = window_arr[i];
+
+		var has_keyboard = window_children.elements();
+
+		//UIALogger.logDebug("has_keyboard: " + getObjectClassName(has_keyboard) + " length :" + has_keyboard.length.toString());
+
+		if( !(has_keyboard instanceof UIAElementNil) ){
+			for (var j = 0; j < has_keyboard.length; j++) {
+				if(has_keyboard[j] instanceof UIAKeyboard){
+					return window_children;
+				}
+			};
+		}
+	};
+
+	return null;
+}
+
+//calculate the keyboard "完成" points 
+IosTraversal.prototype.calpoint = function(keyboard){
+	var point = {};
+
+	var rect = keyboard.rect();
+
+	point.x = rect.size.width - 5;
+	point.y = rect.origin.y -5;
+
+	return point;
+}
+
+//input string to the textfield and dismiss the keyboard
+IosTraversal.prototype.inputString = function(test_string){
+	var keyboard = app.keyboard();
+
+	if( !(keyboard instanceof UIAElementNil) ){
+
+		keyboard.typeString(test_string);
+
+		var point = this.calpoint(keyboard);
+
+		var done_btn = null;
+
+		var keyboard_father = this.getKeyBoardFather();
+
+		if(keyboard_father != null){		
+			//keyboard_father.logElementTree();
+			
+			var toolbar_arr = keyboard_father.toolbars();
+
+			UIALogger.logDebug("toolbar_arr length is " + toolbar_arr.length.toString());
+
+			if( toolbar_arr instanceof UIAElementNil ){
+				//tap point
+				UIALogger.logDebug("toolbar_arr is UIAElementNil");
+				target.tap(point);
+			}else{ //tap button
+				for (var i = 0; i < toolbar_arr.length; i++) {
+					if( toolbar_arr[i].buttons()["完成"] == undefined){
+						UIALogger.logDebug( "toolbar_arr[" + i.toString() + "] not match" );
+						continue;
+					}else{
+						UIALogger.logDebug( "toolbar_arr[" + i.toString() + "] find !!!!" );
+						done_btn = toolbar_arr[i].buttons()["完成"];
+						break;
+					}
+				};
+
+				//UIALogger.logDebug("done_btn type is : " + getObjectClassName(done_btn));
+
+				if(done_btn != null){
+					done_btn.tap();
+				}else{
+					//tap point;
+					UIALogger.logDebug("done_btn is null");
+					target.tap(point);
+				}
+			}
+		}else{
+			UIALogger.logDebug("get getKeyBoardFather null");
+			target.tap(point);
+		}
+	}
+}
+
 IosTraversal.prototype.rmDoneElements = function(ele_arr,level){
 	var new_dict = {};
 	var new_arr = [];
@@ -291,10 +384,10 @@ IosTraversal.prototype.traversalTree = function(level){
 
 	//target.delay(1);
 
-	/*
-	var keyboard = app.keyboard();
+	/*var keyboard = app.keyboard();
 	if( !(keyboard instanceof UIAElementNil) ){
-		keyboard.typeString("test");
+		this.inputString("test");
+		UIALogger.logDebug("maybe textfield, inputString test");
 	}*/
 
 	var alert = app.alert()
@@ -396,15 +489,7 @@ IosTraversal.prototype.traversalTree = function(level){
 				UIALogger.logMessage("seekDict " + key + " null, amazing...");
 
 				if(current_undo_element_arr[i].checkCanBeTapped()){
-
 					this.gdict.addDict(obj_type,obj_name,obj_position,level);
-
-					if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
-						current_undo_element_arr[i].setValue("test");
-						
-						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
-						continue;
-					}
 
 					UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
 					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
@@ -414,6 +499,9 @@ IosTraversal.prototype.traversalTree = function(level){
 					target.pushTimeout(2);
 					current_undo_element_arr[i].tap();
 					target.popTimeout();
+					if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
+						this.inputString("test");
+					}
 					this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 
 					target.delay(1);
@@ -432,18 +520,15 @@ IosTraversal.prototype.traversalTree = function(level){
 						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 						continue;
 					}else{
-						if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
-							current_undo_element_arr[i].setValue("test");
-
-							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
-							continue;
-						}
-
 						try{
 							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 							target.pushTimeout(2);
 							current_undo_element_arr[i].tap();  //may throw could not be tapped
 							target.popTimeout();
+
+							if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
+								this.inputString("test");
+							}
 
 							target.delay(1);
 							this.traversalTree(level+1);	
