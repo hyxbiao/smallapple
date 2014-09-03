@@ -663,9 +663,9 @@ IosTraversal.prototype.startTraversal = function(){
 }
 
 var g_tap_count = 0;
-var TAP_THRESHOLD = 10;
+var TAP_THRESHOLD = 300;
 var g_run_count = 0;
-var RUN_THRESHOLD = 10;
+var RUN_THRESHOLD = 30;
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
