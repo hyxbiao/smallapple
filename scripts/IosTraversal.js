@@ -1,4 +1,4 @@
-//Copyright (c) 2014   phoenix_whu@163.com  2014/08/22
+//Copyright (c)  2014/08/22
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -151,6 +151,23 @@ UIAElement.prototype.getCurrentLayerElements = function(ele_arr){
 	}
 
 	getCurrentLayerElementsChildren(root,ele_arr);
+}
+
+//get all the first layer btns
+UIAElement.prototype.getChildrenBtns = function(){
+	var btn_eles = [];
+
+	target.pushTimeout(0);
+	var eles = this.elements();
+	target.popTimeout();
+
+	for (var i = 0; i < eles.length; i++) {
+		if( eles[i] instanceof UIAButton ){
+			btn_eles.push(eles[i]);
+		}
+	};
+
+	return btn_eles;
 }
 
 
@@ -378,6 +395,88 @@ IosTraversal.prototype.rmDoneElements = function(ele_arr,level){
 	return new_dict;
 }
 
+IosTraversal.prototype.genRandomPoint = function(x,y,width,height){
+	var point = {};
+	point.x = x + Math.random() * width;
+	point.y = y + Math.random() * height;
+
+	return point;
+}
+
+//all tappable elements be tapped, so tap points
+IosTraversal.prototype.desperateTry = function(level){
+
+	UIALogger.logMessage("in desperateTry");
+
+	var all_ele_arr = [];
+	var navi_eles_btns = [];
+	var tabbar_eles_btns = [];
+	var toolbar_eles_btns = [];
+
+
+	var navigationBar = app.navigationBar();
+	if( !(navigationBar instanceof UIAElementNil) ){
+		navi_eles_btns = navigationBar.getChildrenBtns();
+		UIALogger.logDebug("navi_eles_btns length: " + navi_eles_btns.length.toString());
+	}else{
+		UIALogger.logDebug("navigationbar is nil");
+	}
+
+	var tabBar = app.tabBar();
+	if( !(tabBar instanceof UIAElementNil) ){
+		tabbar_eles_btns = tabBar.getChildrenBtns();
+		UIALogger.logDebug("tabbar_eles_btns length: " + tabbar_eles_btns.length.toString());
+	}else{
+		UIALogger.logDebug("tabBar is nil");
+	}
+
+	var toolbar = app.toolbar();
+	if( !(toolbar instanceof UIAElementNil) ){
+		toolbar_eles_btns = toolbar.getChildrenBtns();
+		UIALogger.logDebug("toolbar_eles_btns length: " + toolbar_eles_btns.length.toString());
+	}else{
+		UIALogger.logDebug("toolbar is nil");
+	}
+
+	var tmp_arr = navi_eles_btns.concat(tabbar_eles_btns);
+	all_ele_arr = tmp_arr.concat(toolbar_eles_btns);
+
+	UIALogger.logDebug("all_ele_arr length: " + all_ele_arr.length.toString());
+
+	if(all_ele_arr.length > 0){
+		var ran_index = Math.floor( (Math.random() * all_ele_arr.length) );
+
+		UIALogger.logDebug("ran_index : " + ran_index.toString());
+
+		target.pushTimeout(0);
+		var obj_position = all_ele_arr[ran_index].rect();
+		target.popTimeout();
+
+		var point = {};
+		point.x = obj_position.origin.x + obj_position.size.width / 2;
+		point.y = obj_position.origin.y + obj_position.size.height / 2;
+
+		UIALogger.logDebug("tap unvisiable element points");
+		try{
+			target.tap(point);
+		}catch(e){
+			UIALogger.logWarning("tap fail!!!");
+		}
+
+		target.delay(1);
+		this.traversalTree(level+1);
+	}else{
+		UIALogger.logDebug("tap random points");
+		try{
+			target.tap(this.genRandomPoint(10,10,50,50));
+		}catch(e){
+			UIALogger.logWarning("tap fail!!!!");
+		}
+		target.delay(1);
+		this.traversalTree(level+1);
+	}
+}
+
 //use events to represent element
 IosTraversal.prototype.traversalTree = function(level){
 	//window.logElementTree();
@@ -389,6 +488,14 @@ IosTraversal.prototype.traversalTree = function(level){
 		this.inputString("test");
 		UIALogger.logDebug("maybe textfield, inputString test");
 	}*/
+
+	g_tap_count += 1;
+
+	UIALogger.logMessage("g_tap_count : " + g_tap_count.toString());
+
+	if(g_tap_count >= TAP_THRESHOLD){
+		return;
+	}
 
 	var alert = app.alert()
 	if( !(alert instanceof UIAElementNil) ){
@@ -466,25 +573,30 @@ IosTraversal.prototype.traversalTree = function(level){
 		}
 		else{
 			UIALogger.logMessage("level[" + level.toString() + "]:  " + "current_undo_element_arr is empty.");
+
+			this.desperateTry(level);
+
+			this.traversalTree(level+1);
+
 			//because no back key in ios,so can't back to previous ui 
 			//return means exit the program
-			return;
+			//return;
 		}
-	}
-	
-	for (var i = 0; i < current_undo_element_arr.length; i++) {
-		UIALogger.logDebug( "in traversalTree for: " + i.toString());
+	}else{	
+		var i = Math.floor( (Math.random() * current_undo_element_arr.length) );
+
+		UIALogger.logDebug( "in traversalTree random index: " + i.toString());
 		target.pushTimeout(0);
 		var obj_name = current_undo_element_arr[i].name();
 		var obj_position = current_undo_element_arr[i].rect();
 		target.popTimeout();
 		var obj_type = current_undo_element_arr[i].getObjectClassName();
-		if( obj_type === undefined){
+		if( obj_type === undefined ){
 			UIALogger.logWarning("level[" + level.toString() + "]:  " + obj_type + " is undefined");
-			continue;
+			traversalTree(level+1);
 		}else{
 			var value = this.gdict.seekDict(obj_type,obj_name,obj_position);
-			if(value == undefined){ //don't know why this!!
+			if(value === undefined){ //don't know why this!!
 				var key = this.gdict.makeDictKey(obj_type,obj_name,obj_position);
 				UIALogger.logMessage("seekDict " + key + " null, amazing...");
 
@@ -492,10 +604,10 @@ IosTraversal.prototype.traversalTree = function(level){
 					this.gdict.addDict(obj_type,obj_name,obj_position,level);
 
 					UIALogger.logMessage("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
-					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
-						" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
-						" isVisible: " + current_undo_element_arr[i].isVisible().toString());
-					*/
+						/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
+							" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
+							" isVisible: " + current_undo_element_arr[i].isVisible().toString());
+						*/
 					target.pushTimeout(2);
 					current_undo_element_arr[i].tap();
 					target.popTimeout();
@@ -504,47 +616,44 @@ IosTraversal.prototype.traversalTree = function(level){
 					}
 					this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 
-					target.delay(1);
-					this.traversalTree(level+1);		
-				}else{
-					continue;
-				}		
+					target.delay(1);			
+				}
+
+				this.traversalTree(level+1);
 			}else{
 				if(value["status"] == "undo"){
-					//UIALogger.logDebug(value["level"] + '_' + value["status"]);
+						//UIALogger.logDebug(value["level"] + '_' + value["status"]);
 					UIALogger.logDebug("level[" + level.toString() + "]:  " + "tap " + obj_type + ":" + obj_name);
-					/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
-						" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
-						" isVisible: " + current_undo_element_arr[i].isVisible().toString()); */
+						/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
+							" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
+							" isVisible: " + current_undo_element_arr[i].isVisible().toString()); */
 					if( !current_undo_element_arr[i].checkCanBeTapped() ){
 						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
-						continue;
 					}else{
 						try{
 							this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 							target.pushTimeout(2);
-							current_undo_element_arr[i].tap();  //may throw could not be tapped
+							current_undo_element_arr[i].tap();  //tap maybe throw exception
 							target.popTimeout();
+
+							target.delay(1);
 
 							if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
 								this.inputString("test");
-							}
-
-							target.delay(1);
-							this.traversalTree(level+1);	
+							}	
 						}catch(e){
 							UIALogger.logWarning("could not tapped!! tap fail");
-						}finally{			
-							continue;
-						}
+						}	
 					}		
 				}else{
 					UIALogger.logMessage("level[" + level.toString() + "]:  "  + obj_type + ":" + obj_name + " is done, continue for");
-					continue;
 				}
+
+				this.traversalTree(level+1);
 			}
 		}
-	};
+	}
+
 	//this.gdict.printDict();	
 }
 
@@ -553,9 +662,21 @@ IosTraversal.prototype.startTraversal = function(){
 	UIALogger.logMessage("end all traversal");
 }
 
+var g_tap_count = 0;
+var TAP_THRESHOLD = 10;
+var g_run_count = 0;
+var RUN_THRESHOLD = 10;
+
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
 var window = app.mainWindow();
 
 var iostraversal = new IosTraversal();
-iostraversal.startTraversal();
+
+for (g_run_count = 0; g_run_count < RUN_THRESHOLD; g_run_count++) {
+	UIALogger.logMessage("------- begin the " + g_run_count.toString() + " round traversal ---------");
+	g_tap_count = 0;
+	iostraversal.startTraversal();
+};
+
+
