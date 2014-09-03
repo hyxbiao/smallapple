@@ -59,6 +59,7 @@ function Usage()
 	echo "    -t <template>                  : instruments template"
 	echo "    -c <automation script>         : instruments automation js"
 	echo "    -o <result dir>                : default result"
+	echo "    -d <dsym path>                 : option. dSYM path for crash analyze"
 	exit 1
 }
 
@@ -97,6 +98,7 @@ function DetectCrash()
 	local result_path="$3"
 	local start="$4"
 	local end="$5"
+	local dsym_path="$6"
 
 	Print $TTY_TRACE "Start collect crash"
 
@@ -106,15 +108,36 @@ function DetectCrash()
 	local crash_num=0
 
 	local crash_path="$result_path/$CRASH_DIR"
-	mkdir -p $crash_path
+	mkdir -p $crash_path/tmp
+
 	#download crash
 	for crash in $crashs
 	do
 		$BINDIR/iosutil -s $device pull -b crash /$crash $crash_path
+		#try analyze
+		local crash_file="$crash_path/$crash"
+		local crash_sym_file="$crash_path/$crash.sym"
+		analyzeCrash $crash_file $crash_sym_file $dsym_path
+		#mv raw crash file
+		if [ -f $crash_sym_file ]; then
+			mv $crash_file $crash_path/tmp
+		fi
 		let crash_num=$crash_num+1
 	done
 
 	return $crash_num
+}
+
+function analyzeCrash()
+{
+	local crash_file="$1"
+	local output_file="$2"
+	local dsym_path="$3"
+
+	local analyze="$PLUGINDIR/analyzeCrash/main.sh"
+	if [ -f $analyze ]; then
+		$analyze $crash_file ori $output_file $dsym_path
+	fi
 }
 
 function ParseInstrumentTrace()
@@ -138,6 +161,8 @@ function Main()
 	local script
 	local result_path="${PWD}/result"
 
+	local dsym_path
+
 	[ $# -eq 0 ] && Usage
 
 	while [ $# -gt 0 ]
@@ -157,6 +182,10 @@ function Main()
 			;;
 		-o)
 			result_path="$2"
+			shift 2
+			;;
+		-d)
+			dsym_path="$2"
 			shift 2
 			;;
 		-*)	echo "Unkown option \"$1\""
@@ -192,7 +221,7 @@ function Main()
 
 	#detect crash
 	local crash_num=0
-	DetectCrash "$device" "$appname" "$result_path" "$start" "$end"
+	DetectCrash "$device" "$appname" "$result_path" "$start" "$end" "$dsym_path"
 	crash_num=$?
 	if [ $crash_num -gt 0 ]; then
 		Print $TTY_FATAL "$crash_num crashs found!"
