@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.8.3"
+VERSION="0.8.4"
 
 MODULE_NAME="smallapple"
 
@@ -64,6 +64,9 @@ function AutomationUsage()
 	echo "    -p <.mobileprovision path>     : .mobileprovision path"
 	echo "      or  -e <entitlement path>    : entitlement path"
 	echo "    -i <developer identity>        : ios developer identity"
+	echo ""
+	echo "crash options:"
+	echo "    -d <dsym path>                 : dSYM path for crash analyze"
 	echo ""
 	echo "example:"
 	echo "    $MODULE_NAME automation test.ipa"
@@ -221,8 +224,9 @@ function RunAutomation()
 	local script="$3"
 	local template="$4"
 	local result_path="$5"
+	local dsym_path="$6"
 
-	$BINDIR/automation.sh -s "$device" -t "$template" -c "$script" -o "$result_path" "$app"
+	$BINDIR/automation.sh -s "$device" -t "$template" -c "$script" -d "$dsym_path" -o "$result_path" "$app"
 }
 
 function Automation() 
@@ -238,6 +242,8 @@ function Automation()
 	local mobileprovision
 	local entitlements
 	local identity
+
+	local dsym_path
 
 	[ $# -eq 0 ] && AutomationUsage
 
@@ -274,6 +280,10 @@ function Automation()
 			;;
 		-i)
 			identity="$2"
+			shift 2
+			;;
+		-d)
+			dsym_path="$2"
 			shift 2
 			;;
 		-*)	echo "Unkown option \"$1\""
@@ -327,8 +337,8 @@ function Automation()
 		fi
 	fi
 
-	#run monkey testing
-	RunAutomation $device $bundleid $script $template $result_path
+	#run testing
+	RunAutomation $device $bundleid $script $template $result_path $dsym_path
 
 	#uninstall
 	#$BINDIR/iosutil -s $device uninstall $bundleid
@@ -344,7 +354,7 @@ function Debug()
 	#local script="$WORKDIR/scripts/UIAutoMonkey.js"
 	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
 	#local template=`instruments -s templates | grep Automation`
-	RunAutomation $device $bundleid $script $template $result_path
+	RunAutomation $device $bundleid $script $template $result_path $dsym_path
 }
 
 function Main()
