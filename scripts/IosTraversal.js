@@ -80,6 +80,7 @@ UIAElement.prototype.obj2string = function(){
 UIAElement.prototype.checkCanBeTapped = function(){
 	if( !this.isValid() || !this.isEnabled() || !this.isVisible() 
 		|| this.getObjectClassName() == "UIAStaticText"){
+	//if( !this.isValid() || !this.isEnabled() || this.getObjectClassName() == "UIAStaticText"){
 		/*target.pushTimeout(0);
 		var ele_name = element.name();
 		target.popTimeout();
@@ -214,6 +215,11 @@ GDict.prototype.setDictElementDone = function(obj_type,obj_name,obj_position){
 	//var value = this.G_Dict.key;
 	//UIALogger.logDebug("in setDictElementDone set dict key: " + key + " done");
 	this.G_Dict[key]["status"] = "done";
+}
+
+GDict.prototype.clearDict = function(){
+	this.G_Dict = {};
+	this.dict_length = 0;
 }
 
 GDict.prototype.printDict = function(){
@@ -608,12 +614,18 @@ IosTraversal.prototype.traversalTree = function(level){
 							" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
 							" isVisible: " + current_undo_element_arr[i].isVisible().toString());
 						*/
-					target.pushTimeout(2);
-					current_undo_element_arr[i].tap();
-					target.popTimeout();
-					if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
-						this.inputString("test");
+					if( obj_name != "夜间模式"){
+						target.pushTimeout(2);
+						current_undo_element_arr[i].tap();
+						target.popTimeout();
+
+						if( obj_type == "UIASecureTextField" || obj_type == "UIATextField" || obj_type == "UIATextView"){
+							this.inputString("test");
+						}
+					}else{
+						UIALogger.logMessage("夜间模式, not tap");
 					}
+
 					this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 
 					target.delay(1);			
@@ -627,7 +639,9 @@ IosTraversal.prototype.traversalTree = function(level){
 						/*UIALogger.logDebug("isValid: " + current_undo_element_arr[i].isValid().toString() +
 							" isEnabled: " + current_undo_element_arr[i].isEnabled().toString() +
 							" isVisible: " + current_undo_element_arr[i].isVisible().toString()); */
-					if( !current_undo_element_arr[i].checkCanBeTapped() ){
+					if( !current_undo_element_arr[i].checkCanBeTapped() 
+						|| obj_name == "夜间模式" ){
+						UIALogger.logMessage("夜间模式 or can't be tap, not tap: " + obj_name);
 						this.gdict.setDictElementDone(obj_type,obj_name,obj_position);
 					}else{
 						try{
@@ -663,9 +677,9 @@ IosTraversal.prototype.startTraversal = function(){
 }
 
 var g_tap_count = 0;
-var TAP_THRESHOLD = 300;
+var TAP_THRESHOLD = 200;
 var g_run_count = 0;
-var RUN_THRESHOLD = 30;
+var RUN_THRESHOLD = 100;
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
@@ -676,7 +690,6 @@ var iostraversal = new IosTraversal();
 for (g_run_count = 0; g_run_count < RUN_THRESHOLD; g_run_count++) {
 	UIALogger.logMessage("------- begin the " + g_run_count.toString() + " round traversal ---------");
 	g_tap_count = 0;
+	iostraversal.gdict.clearDict();
 	iostraversal.startTraversal();
 };
-
-
