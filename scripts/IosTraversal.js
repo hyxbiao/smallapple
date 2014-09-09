@@ -265,6 +265,19 @@ IosTraversal.prototype.getKeyBoardFather = function(){
 	return null;
 }
 
+IosTraversal.prototype.formatDate = function(date) {
+	var yyyy = date.getFullYear();
+	var mm = date.getMonth()+1;
+	var dd = date.getDate();
+
+	var H = date.getHours();
+	var M = date.getMinutes();
+	var S = date.getSeconds();
+	var f = date.getMilliseconds();
+
+	return [yyyy, mm, dd, H, M, S, f].join('-');
+}
+
 //calculate the keyboard "完成" points 
 IosTraversal.prototype.calpoint = function(keyboard){
 	var point = {};
@@ -503,11 +516,14 @@ IosTraversal.prototype.traversalTree = function(level){
 		return;
 	}
 
-	var alert = app.alert()
+	var filename = "traversal-" + this.formatDate(new Date());
+	target.captureScreenWithName(filename);
+
+	/*var alert = app.alert()
 	if( !(alert instanceof UIAElementNil) ){
 		alert.defaultButton().tap();
 		target.delay(1);
-	}
+	}*/
 
 	var current_all_element_arr = [];
 	var current_undo_element_dict = {};
@@ -677,9 +693,9 @@ IosTraversal.prototype.startTraversal = function(){
 }
 
 var g_tap_count = 0;
-var TAP_THRESHOLD = 200;
+var TAP_THRESHOLD = 100;
 var g_run_count = 0;
-var RUN_THRESHOLD = 100;
+var RUN_THRESHOLD = 200;
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
