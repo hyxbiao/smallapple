@@ -46,12 +46,17 @@ function ProcessIPA()
 
 	unzip -q "$srcfile" -d $tempdir
 
-	local app=`find $tempdir -name *.app`
+	#fix multi .app directory bug
+	local app=`find $tempdir/Payload -name *.app`
 	if [ -z "$app" ]; then
 		echo "Not found *.app!"
 		rm -rf $tempdir
 		exit 1
 	fi
+
+	#remove SC_Info if download from appstore
+	#rm -rf $tempdir/META-INF >/dev/null 2>&1
+	#rm -rf $app/SC_Info >/dev/null 2>&1
 
 	local ret=0
 	#codesign
@@ -60,6 +65,7 @@ function ProcessIPA()
 		ret=$?
 	else
 		codesign -f -s "$identity" --entitlements="$entitlements" "$app" >/dev/null 2>&1
+		#codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
 		ret=$?
 	fi
 

@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.8.4"
+VERSION="0.8.6"
 
 MODULE_NAME="smallapple"
 
@@ -139,7 +139,7 @@ function Install()
 
 		unzip -q "$filename" -d $tempdir
 
-		app=`find $tempdir -name *.app`
+		app=`find $tempdir/Payload -name *.app`
 		if [ -z "$app" ]; then
 			Print $TTY_FATAL "Not found *.app!"
 			rm -rf $tempdir
