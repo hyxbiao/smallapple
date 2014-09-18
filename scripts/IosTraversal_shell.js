@@ -698,8 +698,6 @@ IosTraversal.prototype.startTraversal = function(){
 
 var g_tap_count = 0;
 var TAP_THRESHOLD = 100;
-var g_run_count = 0;
-var RUN_THRESHOLD = 200;
 
 var target = UIATarget.localTarget();
 var app = target.frontMostApp();
@@ -707,9 +705,5 @@ var window = app.mainWindow();
 
 var iostraversal = new IosTraversal();
 
-for (g_run_count = 0; g_run_count < RUN_THRESHOLD; g_run_count++) {
-	UIALogger.logMessage("------- begin the " + g_run_count.toString() + " round traversal ---------");
-	g_tap_count = 0;
-	iostraversal.gdict.clearDict();
-	iostraversal.startTraversal();
-};
+iostraversal.gdict.clearDict();
+iostraversal.startTraversal();
