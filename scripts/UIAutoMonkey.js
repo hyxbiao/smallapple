@@ -177,6 +177,17 @@ UIAutoMonkey.prototype.RELEASE_THE_MONKEY = function() {
 UIAutoMonkey.prototype.dealWelcome = function() {
 	var app = this.target().frontMostApp();
 	var window = app.mainWindow();
+
+	if(window instanceof UIAElementNil){  //sometimes mainWindow is nil
+		var windows = app.windows();
+		for (var i = 0; i < windows.length; i++) {
+			if( windows[i].scrollViews().length > 0 ){
+				window = windows[i];
+				break;
+			}
+		};
+	}
+
 	var rect = window.rect();
 
 	//var elements = window.elements();
