@@ -148,6 +148,26 @@ var chart = {
 			color: Highcharts.getOptions().colors[7]
 		},
 		opposite: true
+	}, {
+		labels: {
+			format: '{value}KB',
+			style: {
+				color: Highcharts.getOptions().colors[2]
+			},
+			x:-20,
+		   align: 'right'
+		},
+		title: {
+			text: 'Network',
+			offset: -10
+		},
+		top: 390,
+		height: 150,
+		min: 0,
+		style: {
+			color: Highcharts.getOptions().colors[2]
+		},
+		opposite: true
 	}],
 	rangeSelector: {
 		enabled: false,
@@ -181,6 +201,15 @@ var chart = {
 		color: Highcharts.getOptions().colors[7],
 		tooltip: {
 			valueSuffix: ' MB'
+		}
+	}, {
+		name: 'Network',
+		type: 'area',
+		yAxis: 3,
+		data: [@networkdata],
+		color: Highcharts.getOptions().colors[2],
+		tooltip: {
+			valueSuffix: ' KB'
 		}
 	}, {
 		name: 'Screenshot',
@@ -225,7 +254,7 @@ var chart = {
 			</ul>
 		</div>
 		<br>
-		<div id="container" style="min-width: 310px; height: 500px; margin: 0 auto"></div>
+		<div id="container" style="min-width: 310px; height: 660px; margin: 0 auto"></div>
 
 		<script src="@workdir/js/highcharts-custom-jquery.js"></script>
 	</body>

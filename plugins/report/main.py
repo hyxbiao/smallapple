@@ -50,6 +50,32 @@ class Report(object):
             return False
         return samples
 
+    def readNetworkSample(self, filename):
+        keys = ["wifiBytesIn", "Timestamp"]
+        samples = []
+        try:
+            rdata = False
+            with open(filename, "r") as f:
+                rdata = json.load(f)
+                f.close()
+            if not rdata or len(rdata) == 0:
+                print "no found data in '%'!" % (filename)
+                return False
+            for item in rdata:
+                nitem = {}
+                for k in keys:
+                    v = item[k]
+                    v = v.encode('utf-8') if type(v) is unicode else v
+                    if k == 'Timestamp':
+                        v = "%.0lf" % v
+                    nitem[k] = v
+                samples.append(nitem)
+
+        except Exception, e:
+            print "Exception here: %s" % str(e)
+            return False
+        return samples
+
     def readData(self):
         d = os.path.join(self.result_dir, DATA_DIR)
         if not os.path.isdir(d):
@@ -82,6 +108,31 @@ class Report(object):
         print template.format("min", cpu[1], mem[1])
         print template.format("avg", cpu[0], mem[0])
         print template.format("max", cpu[2], mem[2])
+
+    def readNetwork(self):
+        d = os.path.join(self.result_dir, DATA_DIR)
+        if not os.path.isdir(d):
+            print "%s is not found!" % d
+            return False
+
+        flist = []
+        for filename in os.listdir(d):
+            if filename.startswith("NetworkActivity"):
+                idx = int(filename.split('-')[1])
+                flist.append([idx, filename])
+        flist.sort()
+
+        data = []
+        for item in flist:
+            idx = item[0]
+            filename = os.path.join(d, item[1])
+            samples = self.readNetworkSample(filename)
+            if samples:
+                data.append([idx, samples])
+        return data
+
+    def printNetwork(self, data):
+        print(data)
 
     def readCrash(self):
         d = os.path.join(self.result_dir, CRASH_DIR)
@@ -195,12 +246,28 @@ class Report(object):
                 idx = item[0]
                 images = item[1]
                 for s in images:
+                    #print(s[0].timetuple() * 1000)
                     ts = int(calendar.timegm(s[0].timetuple()) * 1000)
+                    #print ts
                     screenshot_dict[ts] = [idx, s[1]]
                     screenshot_data.append([ts, 0])
         screenshot_data.sort()
         render_data['screenshot_dict'] = json.dumps(screenshot_dict)
         render_data['screenshot_data'] = json.dumps(screenshot_data)
+
+        #process network
+        networkdata = []
+        netWorkData = self.readNetwork()
+        if netWorkData:
+            for item in netWorkData:
+                idx = item[0]
+                samples = item[1]
+                for sample in samples:
+                    ts = (int(sample['Timestamp'])+8*60*60)*1000
+                    networkdata.append("[%u, %.2f]" % (ts, sample['wifiBytesIn']/1024))
+        #print(networkdata)
+        render_data['networkdata'] = ','.join(networkdata)
+        #print(render_data['networkdata'])
 
         out_data = template.substitute(render_data)
         #save
