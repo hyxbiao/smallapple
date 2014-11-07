@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.8.6"
+VERSION="0.9.0"
 
 MODULE_NAME="smallapple"
 
@@ -57,7 +57,7 @@ function AutomationUsage()
 	echo "    -o <result dir>                : result direcotry. default \$PWD/result"
 	echo ""
 	echo "script options:"
-	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor.tracetemplate"
+	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor_Energy_Network.tracetemplate"
 	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/scripts/UIAutoMonkey.js"
 	echo ""
 	echo "resign options:"
@@ -236,7 +236,7 @@ function Automation()
 	local result_path="${PWD}/result"
 	local isbundle=0
 
-	local template="$WORKDIR/templates/Automation_Monitor.tracetemplate"
+	local template="$WORKDIR/templates/Automation_Monitor_Energy_Network.tracetemplate"
 	local script="$WORKDIR/scripts/UIAutoMonkey.js"
 
 	local mobileprovision
