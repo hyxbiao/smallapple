@@ -13,6 +13,9 @@ var resultdir = '@resultdir';
 var start_times = @start_times;
 var crashs = @crashs;
 var screenshot_dict = @screenshot_dict;
+var avg_cpu = @avg_cpu
+var avg_mem = @avg_mem
+var avg_network = @avg_network
 function generateStartTimesLine(chart)
 {
 	for (var i=0; i<start_times.length; ++i) {
@@ -54,6 +57,9 @@ function showSummary()
 		var href = [resultdir, 'crash', crashs[i][1]].join('/');
 		$('#crash_list').append('<li><a href="'+href+'" target="blank">'+crashs[i][1]+'</a></li>');
 	}
+    $('#average_cpu').text(avg_cpu+"%");
+    $('#average_memory').text(avg_mem+"MB");
+    $('#average_network').text(avg_network+"KB/S");
 }
 $(function () {
 var chart = {
@@ -82,7 +88,7 @@ var chart = {
         }
 	},
 	title: {
-		text: 'Perfermace',
+		text: 'Performamce',
 		x: -20 //center
 	},
 	xAxis: {
@@ -248,12 +254,18 @@ var chart = {
 	<body>
 		<div></div>
 		<h1 style="border-bottom: 1px solid #eee; padding-bottom:9px">Summary</h1>
+        <div></div>
 		<div id="smartdoctor" style="min-width: 310px; margin: 0 auto">
 			<p>Crash times:  <span id='crash_count' style="color: red">0</span></p>
 			<ul id='crash_list'>
 			</ul>
 		</div>
 		<br>
+        <div id="average">
+            CPU_Average:  <span id='average_cpu' style="color: #87CEFA">0</span> &nbsp;&nbsp;
+            Memory_Average:  <span id='average_memory' style="color: blue">0</span> &nbsp;&nbsp;
+            Network_Average:  <span id='average_network' style="color: green">0</span>
+        </div>
 		<div id="container" style="min-width: 310px; height: 660px; margin: 0 auto"></div>
 
 		<script src="@workdir/js/highcharts-custom-jquery.js"></script>

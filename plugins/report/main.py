@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__author__ = "hyxbiao(xuanbiao@baidu.com), liguoqiang(liguoqiang01@baidu.com)"
+__author__ = "hyxbiao(xuanbiao@baidu.com)"
 
 import sys
 import os
@@ -89,13 +89,33 @@ class Report(object):
                 flist.append([idx, filename])
         flist.sort()
 
-        data = []
+        keys = ["CPUUsage", "ResidentSize"]
+        data = {}
+        sampledata = []
+        data["summary"] = dict((k,[]) for k in keys)
         for item in flist:
             idx = item[0]
             filename = os.path.join(d, item[1])
             samples = self.readPerfermaceSample(filename)
             if samples:
-                data.append([idx, samples])
+                sampledata.append([idx, samples])
+        for k in keys:
+            count = 0
+            size = 0
+            min = sampledata[0][1][0][k]
+            max = sampledata[0][1][0][k]
+            for idx,samples in sampledata:
+                for sample in samples:
+                    count += sample[k]
+                    size += 1
+                    if sample[k] < min:
+                        min = sample[k]
+                    if sample[k] > max:
+                        max = sample[k]
+            if size!=0:
+                avg = count/size
+            data["summary"][k] = [avg,min,max]
+        data["samples"] = sampledata
         return data
 
     def printData(self, data):
@@ -122,13 +142,35 @@ class Report(object):
                 flist.append([idx, filename])
         flist.sort()
 
-        data = []
+        data = {}
+        samplesdata = []
         for item in flist:
             idx = item[0]
             filename = os.path.join(d, item[1])
             samples = self.readNetworkSample(filename)
             if samples:
-                data.append([idx, samples])
+                samplesdata.append([idx, samples])
+        min = 0
+        max = 0
+        if(len(samplesdata)>0):
+            min = samplesdata[0][1][0]["wifiBytesIn"]
+            max = samplesdata[0][1][0]["wifiBytesIn"]
+        avg = 0
+        count = 0
+        size = 0
+        for idx,samples in samplesdata:
+            for sample in samples:
+                if sample["wifiBytesIn"]<min:
+                    min = sample["wifiBytesIn"]
+                if sample["wifiBytesIn"]>max:
+                    max = sample["wifiBytesIn"]
+                count += sample["wifiBytesIn"]
+                size += 1
+        if size!=0:
+            avg = count/size
+        summarydata = [avg, min, max]
+        data["summary"] = summarydata
+        data["samples"] = samplesdata
         return data
 
     def printNetwork(self, data):
@@ -213,8 +255,9 @@ class Report(object):
         memdata = []
         pointstart = 0
         start_times = []
-        if trace_data:
-            for item in trace_data:
+        samplesdata = trace_data["samples"]
+        if samplesdata:
+            for item in samplesdata:
                 idx = item[0]
                 samples = item[1]
                 for sample in samples:
@@ -228,6 +271,8 @@ class Report(object):
         render_data['memdata'] = ','.join(memdata)
         render_data['pointStart'] = pointstart
         render_data['start_times'] = json.dumps(start_times)
+        render_data['avg_mem'] = "%.2f" % float(trace_data["summary"]["ResidentSize"][0]/1024.0/1024.0)
+        render_data['avg_cpu'] = "%.2f" % float(trace_data["summary"]["CPUUsage"][0])
 
         #process crash
         crashs = []
@@ -257,7 +302,9 @@ class Report(object):
 
         #process network
         networkdata = []
-        netWorkData = self.readNetwork()
+        network = self.readNetwork()
+        netWorkData = network["samples"]
+        render_data['avg_network'] = "%.2f" % float(network["summary"][0]/1024.0)
         if netWorkData:
             for item in netWorkData:
                 idx = item[0]
