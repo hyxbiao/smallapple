@@ -202,7 +202,8 @@ function Main()
 		Usage
 	fi
 	bundleid="$1"
-	local appname=`$BINDIR/iosutil -s $device listapp | grep $bundleid | awk '{print $2}'`
+	#local appname=`$BINDIR/iosutil -s $device listapp | grep $bundleid | awk '{print $2}'`
+	local appname=`$BINDIR/iosutil -s $device listapp | awk '{if($1=="'$bundleid'") print $2}'`
 	if [ $? -ne 0 ] || [ -z "$appname" ]; then
 		Print $TTY_FATAL "Get process name fail! [bundleid: $bundleid]"
 		exit 1

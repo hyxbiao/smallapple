@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.9.0"
+VERSION="0.9.1"
 
 MODULE_NAME="smallapple"
 
