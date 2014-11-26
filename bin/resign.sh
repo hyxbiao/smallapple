@@ -6,7 +6,7 @@ function Usage()
 	echo "resign [options] <.ipa/.app path> <output path>"
 	echo "options:"
 	echo "    -p <.mobileprovision path>"
-	echo "    -e <entitlement path>"
+	echo "      or -e <entitlement path>"
 	echo "    -i <developer identity>"
 	exit 1
 }
