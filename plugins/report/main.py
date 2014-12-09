@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__author__ = "hyxbiao(xuanbiao@baidu.com)"
+__author__ = "hyxbiao(xuanbiao@baidu.com), liguoqiang(liguoqiang01@baidu.com)"
 
 import sys
 import os
@@ -71,6 +71,31 @@ class Report(object):
                     nitem[k] = v
                 samples.append(nitem)
 
+        except Exception, e:
+            print "Exception here: %s" % str(e)
+            return False
+        return samples
+
+    def readFpsSample(self, filename):
+        keys = ["FramesPerSecond", "XRVideoCardRunTimeStamp"]
+        samples = []
+        try:
+            rdata = False
+            with open(filename, "r") as f:
+                rdata = json.load(f)
+                f.close()
+            if not rdata or len(rdata) == 0:
+                print "no found data in '%'!" % (filename)
+                return False
+            for item in rdata:
+                nitem = {}
+                for k in keys:
+                    v = item[k]
+                    v = v.encode('utf-8') if type(v) is unicode else v
+                    #if k == 'Timestamp':
+                    #    v = "%.0lf" % v
+                    nitem[k] = v
+                samples.append(nitem)
         except Exception, e:
             print "Exception here: %s" % str(e)
             return False
@@ -175,6 +200,55 @@ class Report(object):
 
     def printNetwork(self, data):
         print(data)
+
+    def readFps(self):
+        d = os.path.join(self.result_dir, DATA_DIR)
+        if not os.path.isdir(d):
+            print "%s is not found!" % d
+            return False
+
+        flist = []
+        for filename in os.listdir(d):
+            if filename.startswith("CoreAnimation"):
+                idx = int(filename.split('-')[1])
+                flist.append([idx, filename])
+        flist.sort()
+
+        data = {}
+        samplesdata = []
+        for item in flist:
+            idx = item[0]
+            filename = os.path.join(d, item[1])
+            samples = self.readFpsSample(filename)
+            #print(samples)
+            if samples:
+                samplesdata.append([idx, samples])
+        #print samplesdata[0]
+
+        min = 0
+        max = 0
+        if(len(samplesdata)>0):
+            min = samplesdata[0][1][0]["FramesPerSecond"]
+            max = samplesdata[0][1][0]["FramesPerSecond"]
+        avg = 0
+        count = 0
+        size = 0
+        for idx,samples in samplesdata:
+            for sample in samples:
+                if sample["FramesPerSecond"]<min:
+                    min = sample["FramesPerSecond"]
+                if sample["FramesPerSecond"]>max:
+                    max = sample["FramesPerSecond"]
+                count += sample["FramesPerSecond"]
+                size += 1
+        #print count
+        if size!=0:
+            avg = count*1.0/size
+        summarydata = [avg, min, max]
+        #print summarydata
+        data["summary"] = summarydata
+        data["samples"] = samplesdata
+        return data
 
     def readCrash(self):
         d = os.path.join(self.result_dir, CRASH_DIR)
@@ -316,6 +390,22 @@ class Report(object):
         render_data['networkdata'] = ','.join(networkdata)
         #print(render_data['networkdata'])
 
+        #process FPS
+        fpsdata = []
+        fps = self.readFps()
+        fpsData = fps['samples']
+        render_data['avg_fps'] = "%.2f" % float(fps["summary"][0])
+        #print render_data['avg_fps']
+        if fpsData:
+            for item in fpsData:
+                idx = item[0]
+                samples = item[1]
+                for sample in samples:
+                    ts = (int(sample['XRVideoCardRunTimeStamp']+8*60*60)*1000)
+                    fpsdata.append("[%u, %.2f]" % (ts, sample['FramesPerSecond']))
+        #print fpsdata
+        render_data['fpsdata'] = ','.join(fpsdata)
+
         out_data = template.substitute(render_data)
         #save
         outfile = os.path.join(self.result_dir, 'report.html')
@@ -336,6 +426,7 @@ class Report(object):
             screenshot = self.readScreenshot()
             #print screenshot
 
+            #self.readFps()
             return self.generateHtml(data, crash, screenshot)
         except Exception, e:
             print "Exception: %s" % str(e)

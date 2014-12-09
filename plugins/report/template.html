@@ -13,9 +13,10 @@ var resultdir = '@resultdir';
 var start_times = @start_times;
 var crashs = @crashs;
 var screenshot_dict = @screenshot_dict;
-var avg_cpu = @avg_cpu
-var avg_mem = @avg_mem
-var avg_network = @avg_network
+var avg_cpu = @avg_cpu;
+var avg_mem = @avg_mem;
+var avg_network = @avg_network;
+var avg_fps = @avg_fps;
 function generateStartTimesLine(chart)
 {
 	for (var i=0; i<start_times.length; ++i) {
@@ -60,6 +61,7 @@ function showSummary()
     $('#average_cpu').text(avg_cpu+"%");
     $('#average_memory').text(avg_mem+"MB");
     $('#average_network').text(avg_network+"KB/S");
+    $('#average_fps').text(avg_fps);
 }
 $(function () {
 var chart = {
@@ -83,7 +85,6 @@ var chart = {
                     //dashStyle: 'dash',                   
                     id: 'mark'
                 });
-
             }
         }
 	},
@@ -174,6 +175,26 @@ var chart = {
 			color: Highcharts.getOptions().colors[2]
 		},
 		opposite: true
+	}, {
+		labels: {
+			format: '{value}',
+			style: {
+				color: Highcharts.getOptions().colors[2]
+			},
+			x:-20,
+		   align: 'right'
+		},
+		title: {
+			text: 'FPS',
+			offset: -10
+		},
+		top: 550,
+		height: 150,
+		min: 0,
+		style: {
+			color: Highcharts.getOptions().colors[2]
+        },
+		opposite: true
 	}],
 	rangeSelector: {
 		enabled: false,
@@ -216,6 +237,15 @@ var chart = {
 		color: Highcharts.getOptions().colors[2],
 		tooltip: {
 			valueSuffix: ' KB'
+		}
+	}, {
+		name: 'Fps',
+		type: 'area',
+		yAxis: 4,
+		data: [@fpsdata],
+		color: '#45ADFA',
+		tooltip: {
+			valueSuffix: ' '
 		}
 	}, {
 		name: 'Screenshot',
@@ -264,9 +294,10 @@ var chart = {
         <div id="average">
             CPU_Average:  <span id='average_cpu' style="color: #87CEFA">0</span> &nbsp;&nbsp;
             Memory_Average:  <span id='average_memory' style="color: blue">0</span> &nbsp;&nbsp;
-            Network_Average:  <span id='average_network' style="color: green">0</span>
+            Network_Average:  <span id='average_network' style="color: green">0</span> &nbsp;&nbsp;
+            FPS_Average:  <span id='average_fps' style="color: #45ADFA">0</span>
         </div>
-		<div id="container" style="min-width: 310px; height: 660px; margin: 0 auto"></div>
+		<div id="container" style="min-width: 310px; height: 820px; margin: 0 auto"></div>
 
 		<script src="@workdir/js/highcharts-custom-jquery.js"></script>
 	</body>
