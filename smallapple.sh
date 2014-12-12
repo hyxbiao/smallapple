@@ -57,7 +57,7 @@ function AutomationUsage()
 	echo "    -o <result dir>                : result direcotry. default \$PWD/result"
 	echo ""
 	echo "script options:"
-	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor_Energy_Network.tracetemplate"
+	echo "    -t <template>                  : instruments template. default SMALLAPPLE/templates/Automation_Monitor_CoreAnimation_Energy_Network.tracetemplate"
 	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/scripts/UIAutoMonkey.js"
 	echo ""
 	echo "resign options:"
