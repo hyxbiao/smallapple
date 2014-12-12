@@ -236,7 +236,7 @@ function Automation()
 	local result_path="${PWD}/result"
 	local isbundle=0
 
-	local template="$WORKDIR/templates/Automation_Monitor_Energy_Network.tracetemplate"
+	local template="$WORKDIR/templates/Automation_Monitor_CoreAnimation_Energy_Network.tracetemplate"
 	local script="$WORKDIR/scripts/UIAutoMonkey.js"
 
 	local mobileprovision
