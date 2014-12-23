@@ -7,6 +7,7 @@ PLUGINDIR="$WORKDIR/plugins"
 INSTRUMENTS_DIR="instruments"
 CRASH_DIR="crash"
 DATA_DIR="data"
+LOG_DIR="log"
 
 MODULE_NAME="automation"
 
@@ -79,16 +80,25 @@ function Run()
 	local script="$3"
 	local template="$4"
 	local result_path="$5"
+	local logprefix="$6"
+
+	#log or no?
+	local log_path="$result_path/$LOG_DIR"
+	mkdir -p $log_path
+	local log="$log_path/${logprefix}.log"
+	local errlog="$log_path/${logprefix}.errlog"
 
 	local instruments_path="$result_path/$INSTRUMENTS_DIR"
 	mkdir -p $instruments_path
+
+	#Print $TTY_TRACE "Logs are saved in $log_path directory"
 	xcrun instruments \
 		-w "$device" \
 		-D "$instruments_path/${MODULE_NAME}" \
 		-t "$template" \
 		"$app" \
 		-e UIARESULTSPATH "$instruments_path" \
-		-e UIASCRIPT $script
+		-e UIASCRIPT $script >$log
 }
 
 function DetectCrash()
@@ -212,7 +222,8 @@ function Main()
 	local ret=0
 	local start=$(date "+%Y-%m-%d-%H%M%S")
 	Print $TTY_TRACE "[$start] Start automation testing..."
-	Run $device $bundleid $script $template $result_path
+	Print $TTY_TRACE "result are saved in $result_path directory"
+	Run $device $bundleid $script $template $result_path $start
 	ret=$?
 	if [ $ret -ne 0 ]; then
 		Print $TTY_FATAL "Run automation fail!"

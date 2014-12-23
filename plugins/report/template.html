@@ -12,6 +12,7 @@ ${demo.css}
 var resultdir = '@resultdir';
 var start_times = @start_times;
 var crashs = @crashs;
+var logs = @logs;
 var screenshot_dict = @screenshot_dict;
 var avg_cpu = @avg_cpu;
 var avg_mem = @avg_mem;
@@ -57,6 +58,10 @@ function showSummary()
 	for (var i=0; i<crashs.length; ++i) {
 		var href = [resultdir, 'crash', crashs[i][1]].join('/');
 		$('#crash_list').append('<li><a href="'+href+'" target="blank">'+crashs[i][1]+'</a></li>');
+	}
+	for (var i=0; i<logs.length; ++i) {
+		var href = [resultdir, 'log', logs[i]].join('/');
+		$('#logs_list').append('<li><a href="'+href+'" target="blank">'+logs[i]+'</a></li>');
 	}
     $('#average_cpu').text(avg_cpu+"%");
     $('#average_memory').text(avg_mem+"MB");
@@ -297,6 +302,12 @@ var chart = {
             Network_Average:  <span id='average_network' style="color: green">0</span> &nbsp;&nbsp;
             FPS_Average:  <span id='average_fps' style="color: #45ADFA">0</span>
         </div>
+		<br>
+        <div id="logs">
+			<p>Run log: </p>
+			<ul id='logs_list'>
+			</ul>
+		</div>
 		<div id="container" style="min-width: 310px; height: 820px; margin: 0 auto"></div>
 
 		<script src="@workdir/js/highcharts-custom-jquery.js"></script>

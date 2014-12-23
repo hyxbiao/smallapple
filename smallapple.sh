@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.9.2"
+VERSION="0.9.3"
 
 MODULE_NAME="smallapple"
 
@@ -30,7 +30,7 @@ TTY_INFO=8
 TTY_MODE_TEXT[1]="[FAIL ]"
 TTY_MODE_TEXT[2]="[PASS ]"
 TTY_MODE_TEXT[4]="[TRACE]"
-TTY_MODE_TEXT[8]=""
+TTY_MODE_TEXT[8]="[INFO ]"
 
 TTY_MODE_COLOR[1]="1;31"	
 TTY_MODE_COLOR[2]="1;32"
@@ -46,6 +46,7 @@ function MainUsage()
 	echo "       resign         : resign app"
 	echo ""
 	echo "       automation     : automation testing"
+	echo "       vcheck         : version compatibility testing"
 	exit 0
 }
 function AutomationUsage()
@@ -73,6 +74,26 @@ function AutomationUsage()
 	echo "    $MODULE_NAME automation -b com.baidu.BaiduMobile"
 	echo "    $MODULE_NAME automation -c <testcase> -b com.baidu.BaiduMobile"
 	echo "    $MODULE_NAME automation -s <device> -p <provision> -i <identity> -c <testcase> test.ipa"
+	exit 0
+}
+
+function VersionCheckUsage()
+{
+	echo "usage: $MODULE_NAME vcheck [options] <old .ipa/.app path> <new .ipa/.app path>"
+	echo "options:"
+	echo "    -s <device id>                 : specify device id. default the first found device"
+	echo "    -o <result dir>                : result direcotry prefix. default \$PWD/result"
+	echo ""
+	echo "script options:"
+	echo "    -c <script>                    : instruments automation js. default SMALLAPPLE/scripts/UIAutoMonkey.js"
+	echo ""
+	echo "resign options:"
+	echo "    -p <.mobileprovision path>     : .mobileprovision path"
+	echo "      or  -e <entitlement path>    : entitlement path"
+	echo "    -i <developer identity>        : ios developer identity"
+	echo ""
+	echo "example:"
+	echo "    $MODULE_NAME vcheck old.ipa new.ipa"
 	exit 0
 }
 
@@ -202,7 +223,7 @@ function ResignAndInstall()
 	fi
 
 	#install
-	Print $TTY_TRACE "Start install, please wait..."
+	Print $TTY_TRACE "Start install ($filename), please wait..."
 	local ret=0
 	Install $app
 	ret=$?
@@ -339,9 +360,72 @@ function Automation()
 
 	#run testing
 	RunAutomation $device $bundleid $script $template $result_path $dsym_path
+	ret=$?
 
 	#uninstall
 	#$BINDIR/iosutil -s $device uninstall $bundleid
+	return $ret
+}
+
+function VersionCheck()
+{
+	local ret=0
+	local device
+	local result_path="${PWD}/result"
+
+	local script="$WORKDIR/scripts/UIAutoMonkey.js"
+
+	local mobileprovision
+	local entitlements
+	local identity
+
+	[ $# -eq 0 ] && VersionCheckUsage
+
+	while [ $# -gt 0 ]
+	do
+		case "$1" in 
+		-s)
+			device="$2"
+			shift 2
+			;;
+		-o)
+			result_path="$2"
+			shift 2
+			;;
+		-c)
+			script="$2"
+			shift 2
+			;;
+		-p)
+			mobileprovision="$2"
+			shift 2
+			;;
+		-e)
+			entitlements="$2"
+			shift 2
+			;;
+		-i)
+			identity="$2"
+			shift 2
+			;;
+		-*)	echo "Unkown option \"$1\""
+			VersionCheckUsage
+			;;
+		*)	break
+			;;
+		esac
+	done
+	if [ $# -ne 2 ]; then
+		VersionCheckUsage
+	fi
+	local version_a="$1"
+	local version_b="$2"
+
+	Print $TTY_INFO "=========== Start version A ($version_a) testing"
+	Automation -s "$device" -c "$script" -o "${result_path}/a" "$version_a"
+
+	Print $TTY_INFO "=========== Start version B ($version_b) testing"
+	Automation -s "$device" -c "$script" -o "${result_path}/b" "$version_b"
 }
 
 function Debug()
@@ -359,6 +443,7 @@ function Debug()
 
 function Main()
 {
+	local ret=0
 	[ $# -eq 0 ] && MainUsage
 
 	while [ $# -gt 0 ]
@@ -373,6 +458,7 @@ function Main()
 		resign)
 			shift
 			Resign "$@"
+			ret=$?
 			break
 			;;
 		install)
@@ -383,6 +469,11 @@ function Main()
 		automation)
 			shift
 			Automation "$@"
+			break
+			;;
+		vcheck)
+			shift
+			VersionCheck "$@"
 			break
 			;;
 		debug)
@@ -401,6 +492,8 @@ function Main()
 			;;
 		esac
 	done
+
+	return $ret
 }
 
 Main "$@"

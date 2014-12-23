@@ -190,6 +190,7 @@ UIAutoMonkey.prototype.dealWelcome = function() {
 
 	var rect = window.rect();
 
+	var count = 5;
 	//var elements = window.elements();
 	var scrollview = window.scrollViews()[0];
 	if (scrollview instanceof UIAScrollView) {
@@ -205,8 +206,18 @@ UIAutoMonkey.prototype.dealWelcome = function() {
 					{x: rect.size.width/2-100, y: rect.size.height/2}
 				);
 				this.delay(0.9);
+				count--;
 			}
 		}
+	}
+
+	//try flick more times
+	for (var i=0; i<count; i++) {
+		this.target().flickFromTo(
+			{x: rect.size.width/2+100, y: rect.size.height/2},
+			{x: rect.size.width/2-100, y: rect.size.height/2}
+		);
+		this.delay(0.9);
 	}
 };
 

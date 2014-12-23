@@ -14,6 +14,7 @@ import json
 INSTRUMENTS_DIR="instruments"
 CRASH_DIR="crash"
 DATA_DIR="data"
+LOG_DIR="log"
 
 class ReportTemplate(string.Template):
     delimiter = '@'
@@ -250,6 +251,16 @@ class Report(object):
         data["samples"] = samplesdata
         return data
 
+    def readLog(self):
+        d = os.path.join(self.result_dir, LOG_DIR)
+        if not os.path.isdir(d):
+            print "%s is not found!" % d
+            return False
+        logs = []
+        for filename in os.listdir(d):
+            logs.append(filename)
+        return logs
+
     def readCrash(self):
         d = os.path.join(self.result_dir, CRASH_DIR)
         if not os.path.isdir(d):
@@ -308,7 +319,7 @@ class Report(object):
                 screenshots.append([idx, images])
         return screenshots
 
-    def generateHtml(self, trace_data, crash_data, screenshot):
+    def generateHtml(self, trace_data, log_data, crash_data, screenshot):
         #read template
         filename = os.path.join(self.work_dir, 'template.html')
 
@@ -347,6 +358,9 @@ class Report(object):
         render_data['start_times'] = json.dumps(start_times)
         render_data['avg_mem'] = "%.2f" % float(trace_data["summary"]["ResidentSize"][0]/1024.0/1024.0)
         render_data['avg_cpu'] = "%.2f" % float(trace_data["summary"]["CPUUsage"][0])
+
+        #process logs
+        render_data['logs'] = json.dumps(log_data)
 
         #process crash
         crashs = []
@@ -416,6 +430,8 @@ class Report(object):
 
     def generate(self):
         try:
+            logs = self.readLog()
+
             crash = self.readCrash()
             #print crash
 
@@ -427,7 +443,7 @@ class Report(object):
             #print screenshot
 
             #self.readFps()
-            return self.generateHtml(data, crash, screenshot)
+            return self.generateHtml(data, logs, crash, screenshot)
         except Exception, e:
             print "Exception: %s" % str(e)
             return False
