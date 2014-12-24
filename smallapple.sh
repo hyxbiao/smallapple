@@ -8,7 +8,7 @@ CONF_LOG_FILE="main.log"
 CONF_LOG_LEVEL=16
 
 ##! **********************  internal conf ***********************
-VERSION="0.9.3"
+VERSION="0.9.4"
 
 MODULE_NAME="smallapple"
 
@@ -44,6 +44,8 @@ function MainUsage()
 	echo "       install        : install app"
 	echo "       appinfo        : get app infomation"
 	echo "       resign         : resign app"
+	echo ""
+	echo "       record         : record & playback tool"
 	echo ""
 	echo "       automation     : automation testing"
 	echo "       vcheck         : version compatibility testing"
@@ -136,6 +138,11 @@ function AppInfo()
 function Resign() 
 {
 	$BINDIR/resign.sh "$@"
+}
+
+function Record() 
+{
+	open $BINDIR/iOSRecorder.app
 }
 
 function Install()
@@ -452,6 +459,12 @@ function Main()
 		appinfo)
 			shift
 			AppInfo "$@"
+			exit $?
+			break
+			;;
+		record)
+			shift
+			Record "$@"
 			exit $?
 			break
 			;;
