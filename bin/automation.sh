@@ -113,16 +113,25 @@ function DetectCrash()
 	Print $TTY_TRACE "Start collect crash"
 
 	local filter="${appname}_${start}"
-	local crashs=`$BINDIR/iosutil -s $device ls -b crash / | grep $appname | grep -v "LatestCrash" | awk '{if($6 > "'"$filter"'") print $6}'`
+	#local crashs=`$BINDIR/iosutil -s $device ls -b crash / | grep $appname | grep -v "LatestCrash" | awk '{if($6 > "'"$filter"'") print $6}'`
+	local crashs=`$BINDIR/iosutil -s $device ls -b crash / | grep $appname | grep -v "LatestCrash" | awk '{print $6}'`
 
 	local crash_num=0
 
 	local crash_path="$result_path/$CRASH_DIR"
 	mkdir -p $crash_path/tmp
 
+	local date_time
+	local ret=0
 	#download crash
 	for crash in $crashs
 	do
+		date_time=`echo $crash | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-[0-9]\{6\}"`
+		ret=$?
+		#no date time or date time earlier than start time drop
+		if [ $ret -ne 0 ] || [ "$date_time" \< "$start" ]; then
+			continue
+		fi
 		$BINDIR/iosutil -s $device pull -b crash /$crash $crash_path
 		#try analyze
 		local crash_file="$crash_path/$crash"
