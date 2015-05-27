@@ -47,7 +47,7 @@ function ProcessIPA()
 	unzip -q "$srcfile" -d $tempdir
 
 	#fix multi .app directory bug
-	local app=`find $tempdir/Payload -name *.app`
+	local app=`find $tempdir/Payload -name *.app | grep -v WatchKit`
 	if [ -z "$app" ]; then
 		echo "Not found *.app!"
 		rm -rf $tempdir

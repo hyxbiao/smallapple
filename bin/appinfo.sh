@@ -26,7 +26,9 @@ function GetInfo()
 	if [ "$ext" == "ipa" ]; then
 		local tmpfile=`mktemp -t appinfo`
 		#unzip ipa
-		unzip -p $file *.app/Info.plist > $tmpfile
+		rm -rf /tmp/Payload
+		unzip -q $file Payload/*.app/Info.plist -d  /tmp
+		cat /tmp/Payload/*.app/Info.plist > $tmpfile
 		plist=$tmpfile
 	elif [ "$ext" == "app" ]; then
 		plist="$file/Info.plist"

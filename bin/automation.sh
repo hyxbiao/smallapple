@@ -171,8 +171,7 @@ function ParseInstrumentTrace()
 	local data_path="$result_path/$DATA_DIR"
 	mkdir -p "$data_path"
 	local xcodeversion=`xcodebuild -version | grep Xcode | awk '{print $2}'`
-	#print $xcodeversion
-	if [ "$xcodeversion" == "6.3" ]; then
+	if [[ $xcodeversion == 6.3* ]]; then
 		$BINDIR/instruments_parser_63 -p "$appname" -i "$trace" -o "$data_path"
 	else
 		$BINDIR/instruments_parser -p "$appname" -i "$trace" -o "$data_path"
