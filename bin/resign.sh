@@ -46,28 +46,61 @@ function ProcessIPA()
 
 	unzip -q "$srcfile" -d $tempdir
 
-	#fix multi .app directory bug
-	local app=`find $tempdir/Payload -name *.app | grep -v WatchKit`
-	if [ -z "$app" ]; then
-		echo "Not found *.app!"
-		rm -rf $tempdir
-		exit 1
-	fi
-
-	#remove SC_Info if download from appstore
-	#rm -rf $tempdir/META-INF >/dev/null 2>&1
-	#rm -rf $app/SC_Info >/dev/null 2>&1
-
 	local ret=0
-	#codesign
-	if [ -z "$entitlements" ]; then
-		codesign -f -s "$identity" "$app" >/dev/null 2>&1
-		ret=$?
-	else
-		codesign -f -s "$identity" --entitlements="$entitlements" "$app" >/dev/null 2>&1
-		#codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
-		ret=$?
-	fi
+        #fix multi .app directory bug
+        local appcount=`find $tempdir/Payload -name *.app | wc -l`
+        if [ $appcount != 0 ]; then
+                local apps=`find $tempdir/Payload -name *.app`
+                echo "$apps" | while read app
+                do
+                        if [ -z "$app" ]; then
+                                echo "Not found *.app!"
+                                rm -rf $tempdir
+                                exit 1
+                        fi
+                        if [ $ret != 0 ]; then
+                                echo "resign fail!"
+                                rm -rf $tempdir
+                                exit 1
+                        fi
+                        #codesign
+                        if [ -z "$entitlements" ]; then
+                                codesign -f -s "$identity" "$app" >/dev/null 2>&1
+                                ret=$?
+                        else
+                                codesign -f -s "$identity" --entitlements="$entitlements" "$app" >/dev/null 2>&1
+                                #codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
+                                ret=$?
+                        fi
+                done
+        fi
+
+	local appexcount=`find $tempdir/Payload -name *.appex | wc -l`
+        if [ $appexcount != 0 ]; then
+                local appexs=`find $tempdir/Payload -name *.appex`
+                echo "$appexs" | while read appex
+                do
+                        if [ -z "$appex" ]; then
+                                echo "Not found *.appex!"
+                                rm -rf $tempdir
+                                exit 1
+                        fi
+                        if [ $ret != 0 ]; then
+                                echo "resign fail!"
+                                rm -rf $tempdir
+                                exit 1
+                        fi
+                        #codesign
+                        if [ -z "$entitlements" ]; then
+                                codesign -f -s "$identity" "$appex" >/dev/null 2>&1
+                                ret=$?
+                        else
+                                codesign -f -s "$identity" --entitlements="$entitlements" "$appex" >/dev/null 2>&1
+                                #codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
+                                ret=$?
+                        fi
+                done
+        fi	
 
 	#zip
 	cd $tempdir
