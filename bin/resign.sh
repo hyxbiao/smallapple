@@ -1,3 +1,4 @@
+# set -x
 # author: hyxbiao(xuanbiao@baidu.com)
 
 
@@ -47,34 +48,34 @@ function ProcessIPA()
 	unzip -q "$srcfile" -d $tempdir
 
 	local ret=0
-        #fix multi .app directory bug
-        local appcount=`find $tempdir/Payload -name *.app | wc -l`
-        if [ $appcount != 0 ]; then
-                local apps=`find $tempdir/Payload -name *.app`
-                echo "$apps" | while read app
-                do
-                        if [ -z "$app" ]; then
-                                echo "Not found *.app!"
-                                rm -rf $tempdir
-                                exit 1
-                        fi
-                        if [ $ret != 0 ]; then
-                                echo "resign fail!"
-                                rm -rf $tempdir
-                                exit 1
-                        fi
-                        #codesign
-                        if [ -z "$entitlements" ]; then
-                                codesign -f -s "$identity" "$app" >/dev/null 2>&1
-                                ret=$?
-                        else
-                                codesign -f -s "$identity" --entitlements="$entitlements" "$app" >/dev/null 2>&1
-                                #codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
-                                ret=$?
-                        fi
-                done
-        fi
-
+	#fix multi .app directory bug
+	local appcount=`find $tempdir/Payload -name *.app | wc -l`
+	if [ $appcount != 0 ]; then
+		local apps=`find $tempdir/Payload -name *.app`
+		echo "$apps" | while read app
+		do
+			if [ -z "$app" ]; then
+				echo "Not found *.app!"
+				rm -rf $tempdir
+				exit 1
+			fi
+			if [ $ret != 0 ]; then
+				echo "resign fail!"
+				rm -rf $tempdir
+				exit 1
+			fi
+        		#codesign
+        		if [ -z "$entitlements" ]; then
+                		codesign -f -s "$identity" "$app" >/dev/null 2>&1
+                		ret=$?
+        		else
+                		codesign -f -s "$identity" --entitlements="$entitlements" "$app" >/dev/null 2>&1
+                		#codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
+                		ret=$?
+        		fi
+		done
+	fi
+	
 	local appexcount=`find $tempdir/Payload -name *.appex | wc -l`
         if [ $appexcount != 0 ]; then
                 local appexs=`find $tempdir/Payload -name *.appex`
@@ -100,7 +101,7 @@ function ProcessIPA()
                                 ret=$?
                         fi
                 done
-        fi	
+        fi
 
 	#zip
 	cd $tempdir
