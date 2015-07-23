@@ -1,4 +1,4 @@
-# set -x
+#set -x
 # author: hyxbiao(xuanbiao@baidu.com)
 
 
@@ -60,7 +60,7 @@ function ProcessIPA()
 				exit 1
 			fi
 			if [ $ret != 0 ]; then
-				echo "resign fail!"
+				#echo "resign fail!"
 				rm -rf $tempdir
 				exit 1
 			fi
@@ -74,41 +74,47 @@ function ProcessIPA()
                 		ret=$?
         		fi
 		done
+		ret=$?
 	fi
 	
-	local appexcount=`find $tempdir/Payload -name *.appex | wc -l`
-        if [ $appexcount != 0 ]; then
-                local appexs=`find $tempdir/Payload -name *.appex`
-                echo "$appexs" | while read appex
-                do
-                        if [ -z "$appex" ]; then
-                                echo "Not found *.appex!"
-                                rm -rf $tempdir
-                                exit 1
-                        fi
-                        if [ $ret != 0 ]; then
-                                echo "resign fail!"
-                                rm -rf $tempdir
-                                exit 1
-                        fi
-                        #codesign
-                        if [ -z "$entitlements" ]; then
-                                codesign -f -s "$identity" "$appex" >/dev/null 2>&1
-                                ret=$?
-                        else
-                                codesign -f -s "$identity" --entitlements="$entitlements" "$appex" >/dev/null 2>&1
-                                #codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
-                                ret=$?
-                        fi
-                done
-        fi
+	if [ $ret == 0 ]; then
+		local appexcount=`find $tempdir/Payload -name *.appex | wc -l`
+        	if [ $appexcount != 0 ]; then
+                	local appexs=`find $tempdir/Payload -name *.appex`
+                	echo "$appexs" | while read appex
+                	do
+                        	if [ -z "$appex" ]; then
+                                	echo "Not found *.appex!"
+                                	rm -rf $tempdir
+                                	exit 1
+                        	fi
+                        	if [ $ret != 0 ]; then
+                                	#echo "resign fail!"
+                                	rm -rf $tempdir
+                                	exit 1
+                        	fi
+                        	#codesign
+                        	if [ -z "$entitlements" ]; then
+                                	codesign -f -s "$identity" "$appex" >/dev/null 2>&1
+                                	ret=$?
+                        	else
+                                	codesign -f -s "$identity" --entitlements="$entitlements" "$appex" >/dev/null 2>&1
+                                	#codesign -f -s "$identity" --entitlements="$entitlements" --resource-rules="$app/ResourceRules.plist" "$app" >/dev/null 2>&1
+                                	ret=$?
+                        	fi
+                	done
+			ret=$?
+        	fi
+	fi
 
-	#zip
-	cd $tempdir
-	zip -qry "$dstfile" .
-	cd - >/dev/null 2>&1
+	if [ $ret == 0 ]; then
+		#zip
+		cd $tempdir
+		zip -qry "$dstfile" .
+		cd - >/dev/null 2>&1
 
-	rm -rf $tempdir
+		rm -rf $tempdir
+	fi
 	return $ret
 }
 
